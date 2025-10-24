@@ -1,5 +1,9 @@
 # Java Build Farm
 
+<p align="center">
+  <img src="docs/images/java-build-farm.png" width="640">
+</p>
+
 ## Obsah
 1. [Overview](#overview)
 2. [Features](#features)
