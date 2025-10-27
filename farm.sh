@@ -60,6 +60,7 @@ check_command tr
 check_command rm
 check_command mkdir
 check_command chmod
+check_command rpmsign
 
 # all command line arguments
 arguments="$@"
@@ -647,6 +648,65 @@ stations_download () {
     done
 }
 
+# Function to sign downloaded RPM packages
+sign_rpms() {
+    echo -e "${YELLOW}:: Signing RPM packages...${NC}"
+
+    # Path to specific application/version
+    local dir_app_name
+    local dir_app_version
+
+    if [[ "$release_url_paths" == "yes" ]]; then
+        dir_app_name=$(url_path "$app_name")
+        dir_app_version=$(url_path "$app_version")
+    else
+        dir_app_name="$app_name"
+        dir_app_version="$app_version"
+    fi
+
+    # Target directory for RPM search
+    local sign_dir="$release_dir/$dir_app_name/$dir_app_version"
+    
+    # Check if the directory exists
+    if [[ ! -d "$sign_dir" ]]; then
+        echo -e "${YELLOW}No release directory found for $app_name $app_version (looked in $sign_dir)${NC}"
+        return 0
+    fi
+
+    # Check for key setup
+    if [[ -z "$gpg_key_id" ]]; then
+        echo -e "${RED}Error: gpg_key_id not set. Define it in config/global.cfg${NC}"
+        echo "Example: gpg_key_id=\"mymail@example.com\""
+        return 0
+    fi
+
+    # Find RPM files
+    mapfile -t rpm_files < <(find "$sign_dir" -type f -name "*.rpm")
+
+    if [[ ${#rpm_files[@]} -eq 0 ]]; then
+        echo -e "${YELLOW}No RPM packages found in $sign_dir${NC}"
+        return 0
+    fi
+
+    echo "Found ${#rpm_files[@]} RPMs to sign in $sign_dir:"
+    for rpm in "${rpm_files[@]}"; do
+        echo " - $rpm"
+    done
+
+    echo ""
+    echo -e "Using GPG key: ${GREEN}$gpg_key_id${NC}"
+    echo -e "You will be asked for the passphrase ${BOLD}once${NC}."
+
+    # Sign all files in one go
+    if rpmsign --addsign --key-id "$gpg_key_id" "${rpm_files[@]}"; then
+        echo -e "${GREEN}All RPMs signed successfully.${NC}"
+    else
+        echo -e "${RED}FAILED to sign one or more RPMs. Check output above.${NC}"
+    fi
+
+    echo -e "${GREEN}:: RPM signing completed.${NC}"
+}
+
 # Main menu
 show_menu() {
     echo ""
@@ -655,7 +715,7 @@ show_menu() {
     echo "2) Dependencies"
     echo "3) Clean"
     echo "4) Build"
-    echo "5) Download $( [ "$release_url_paths" == "yes" ] && echo "(URL paths)" )"
+    echo "5) Download $( [ "$release_url_paths" == "yes" ] && echo "(URL paths)" ) & Sign RPM"
 
     # Show VM options only if Proxmox is configured
     if [[ -n "$proxmox_server" && -n "$proxmox_user" ]]; then
@@ -676,7 +736,7 @@ while true; do
         2) install_dependencies ;;
         3) clean_all ;;
         4) select_application && stations_upload && stations_build ;;
-        5) select_application && stations_download && release_app_icon && release_generate_json ;;
+        5) select_application && stations_download && sign_rpms ;;
         
         # Execute VM-related actions only if Proxmox is configured
         6) [[ -n "$proxmox_server" && -n "$proxmox_user" ]] && vm_status ;;

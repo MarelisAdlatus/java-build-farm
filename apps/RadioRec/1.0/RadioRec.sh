@@ -36,7 +36,7 @@ fi
 app_name="RadioRec"
 app_version="1.0"
 app_desc="Application for playing and recording internet radio stations."
-app_vendor="Marelis Adlatus"
+app_vendor="Marek Liška"
 app_copyright="2025 Marek Liška <adlatus@marelis.cz>"
 main_jar="RadioRec-1.0.jar"
 main_class="cz.marelis.radiorec.RadioRec"
@@ -106,25 +106,25 @@ archive_app_image () {
 build_debian () {
   echo "info: build debian package"
   rm -Rf "$temp_dir"
-  jpackage --type deb --name "$app_name" --app-version "$app_version" --license-file "addons/License.txt" \
+  jpackage --type deb --name "$app_name" --app-version "$app_version" --license-file "addons/debian-copyright" \
   --description "$app_desc" --vendor "$app_vendor" --copyright "$app_copyright" \
   --main-jar "$main_jar" --main-class "$main_class" $java_options \
   --icon "$app_icon" --input "$build_dir" --temp "$temp_dir" --runtime-image "$runtime_dir" \
   --dest "${release_dir}" --file-associations ${app_name}.properties --linux-shortcut \
   --linux-menu-group "Audio;Network;Recorder" --linux-deb-maintainer "adlatus@marelis.cz" \
-  --linux-app-release "1" --linux-app-category "Sound" --linux-package-deps "chromium-browser"
+  --linux-app-release "1" --linux-app-category "Sound" --linux-package-deps "chromium"
 }
 
 build_rpm () {
   echo "info: build rpm package"
   rm -Rf "$temp_dir"
-  jpackage --type rpm --name "$app_name" --app-version "$app_version" --license-file "addons/License.txt" \
+  jpackage --type rpm --name "$app_name" --app-version "$app_version" --license-file "addons/rpm-spec" \
   --description "$app_desc" --vendor "$app_vendor" --copyright "$app_copyright" \
   --main-jar "$main_jar" --main-class "$main_class" $java_options \
   --icon "$app_icon" --input "$build_dir" --temp "$temp_dir" --runtime-image "$runtime_dir" \
   --dest "${release_dir}" --file-associations ${app_name}.properties --linux-shortcut \
-  --linux-menu-group "Audio;Network;Recorder" --linux-rpm-license-type "ASL 2.0" \
-  --linux-app-release "1" --linux-app-category "Sound" --linux-package-deps "chromium-browser"
+  --linux-menu-group "Audio;Network;Recorder" --linux-rpm-license-type "Apache-2.0" \
+  --linux-app-release "1" --linux-app-category "Sound" --linux-package-deps "chromium"
 }
 
 build_pkg () {
@@ -136,7 +136,7 @@ build_pkg () {
   --icon "$app_icon" --input "$build_dir" --temp "$temp_dir" --runtime-image "$runtime_dir" \
   --dest "${release_dir}" --file-associations ${app_name}.properties --linux-shortcut \
   --linux-menu-group "Audio;Network;Recorder" --linux-app-release "1" \
-  --linux-app-category "Sound" --linux-package-deps "chromium-browser"
+  --linux-app-category "Sound" --linux-package-deps "chromium"
 }
 
 set_permissions () {

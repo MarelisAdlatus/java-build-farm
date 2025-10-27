@@ -15,7 +15,8 @@
 8. [Configuring PowerShell on Windows](#configuring-powershell-on-windows)
 9. [Configuring SSH Key-Based Authentication](#configuring-ssh-key-based-authentication)
 10. [Configuring Passwordless Sudo for Linux Stations](#configuring-passwordless-sudo-for-linux-stations)
-11. [License](#license)
+11. [Configuring RPM Signing (GPG)](#configuring-gpg-signing)
+12. [License](#license)
 
 ## <a id="overview"></a> Overview
 Java Build Farm is a script-based automation system for building and packaging Java applications across multiple operating systems and distributions. It enables automatic dependency installation, building, and distribution of Java applications using Proxmox virtual machines and remote hosts.
@@ -27,6 +28,7 @@ Java Build Farm is a script-based automation system for building and packaging J
 - Java Runtime creation using `jlink`
 - Application packaging using `jpackage`
 - Multi-platform package generation (`.deb`, `.rpm`, `.pkg`, `.exe`)
+- Automated RPM package signing using GPG
 - `.exe` installer builds using [Inno Setup Compiler](https://jrsoftware.org/isinfo.php)
 - Remote VM/host provisioning via Proxmox
 - Secure, passwordless SSH authentication
@@ -38,6 +40,7 @@ Java Build Farm is a script-based automation system for building and packaging J
 - **Internet access**
 - **SSH client:** `ssh`, `scp`
 - **Other utilities:** `ping`, `sudo`, `bash`, `tar`, `find`, `awk`, `sed`, `cut`, `head`, `tr`, `rm`, `mkdir`, `chmod`
+- **RPM Signing:** `rpmsign` (usually from the `rpm-sign` or `rpm` package) and `gpg` (for key management)
 - **Proxmox:** (If using Proxmox for VMs)
 - **PowerShell 7.2 or higher:** (For building on Windows hosts)
 
@@ -182,7 +185,9 @@ graph TD;
     E2 -->|Package exe, msi| F1(Archive Output);
     E3 -->|Package deb, rpm| F1;
 
-    C5 -->|Retrieve Files| G1(Store Release Dir);
+    C5 -->|Retrieve Packages via SCP| H1(Files Retrieved to Local Directory);
+    H1 -->|Apply GPG Signature| G1(Sign RPM Packages);
+    G1 -->|Process Complete| I1(Packages Stored in Release Dir);
 
     style C4 stroke:#aaa,stroke-width:3px,font-weight:bold;
     style C5 stroke:#aaa,stroke-width:3px,font-weight:bold;
@@ -202,6 +207,7 @@ graph TD;
 * Uses **SSH & SCP** to copy the packaged files.
 * Optionally applies URL path optimization (lowercase, dashes) if `release_url_paths=yes`.
 * Stores them in the local **release directory**.
+* Automatically signs all found `.rpm` packages using the GPG key specified in `global.cfg`.
 ---
 
 #### Virtual Machine Management (VMs Status, Start, Stop)
@@ -272,6 +278,11 @@ The build farm consists of virtual machines (VMs) and/or physical hosts that are
 
    # SSH user for accessing the Proxmox server
    proxmox_user=root
+
+   # GPG key configuration for signing RPM packages
+   # Use the key ID or user identity associated with the signing key.
+   # Example: 9E736AF1D162F3F6FF21E3659A1A41C5DDF5A11A or "Marek Liška <adlatus@marelis.cz>"
+   gpg_key_id="9E736AF1D162F3F6FF21E3659A1A41C5DDF5A11A"
    ```
 
 #### Virtual Machines Configuration (`config/vms.cfg`)
@@ -582,8 +593,8 @@ This section provides step-by-step instructions for setting up virtual machines 
 ---
 
 ### openSUSE Tumbleweed x64
-- **Download**: [openSUSE Tumbleweed](https://get.opensuse.org/tumbleweed)
-- **ISO**: `openSUSE-Tumbleweed-DVD-x86_64-Snapshot20250308-Media.iso`
+- **Download**: [openSUSE Tumbleweed](https://download.opensuse.org/tumbleweed/iso/openSUSE-Tumbleweed-DVD-x86_64-Current.iso)
+- **ISO**: `openSUSE-Tumbleweed-DVD-x86_64-Current.iso`
 - **VM Config**:
   ```sh
    root@pve:~# qm config 105
@@ -593,7 +604,7 @@ This section provides step-by-step instructions for setting up virtual machines 
    boot: order=scsi0;ide2;net0
    cores: 2
    cpu: x86-64-v2-AES
-   ide2: local-ssd:iso/openSUSE-Tumbleweed-DVD-x86_64-Snapshot20250308-Media.iso,media=cdrom,size=4464M
+   ide2: local-ssd:iso/openSUSE-Tumbleweed-DVD-x86_64-Current.iso,media=cdrom,size=4464M
    memory: 4096
    meta: creation-qemu=8.1.2,ctime=1704991368
    name: vm-opensuse
@@ -943,7 +954,62 @@ sudo reboot
 
 After these steps, the build user will be able to execute commands with `sudo` without being prompted for a password.
 
-## License
+## <a id="configuring-gpg-signing"></a> Configuring RPM Signing (GPG)
+
+For automatic RPM package signing during the **5) Download** step, the GPG environment must be properly configured on the local machine (the machine running `farm.sh`).
+
+### 1. Importing the Private Key
+
+Ensure that you have the **private key** corresponding to the ID set in `config/global.cfg` imported into your GPG keychain.
+
+1. **Verify the presence of the private key:**
+
+```sh
+gpg --list-secret-keys --keyid-format long
+````
+
+Look for the line starting with `sec`. If your key is missing from the list, you must import it.
+
+2.  **Import the private key:**
+
+```sh
+# Replace the path:
+gpg --import /path/to/your/private-key.asc
+```
+
+### 2\. Configuring `~/.rpmmacros`
+
+To ensure that the `rpmsign` tool finds the GPG program and uses the correct key, you must create or modify the configuration file **`~/.rpmmacros`** in your home directory.
+
+1.  **Create/Edit the `~/.rpmmacros` file:**
+
+```sh
+nano ~/.rpmmacros
+```
+
+2.  **Add the following lines:**
+
+    *Verify the path to the `gpg` program (`/usr/bin/gpg`) using the `which gpg` command.*
+    *Replace the Key ID with your actual, full or abbreviated ID (e.g., `9E736AF1D162F3F6FF21E3659A1A41C5DDF5A11A`).*
+
+    ```cfg
+    # Explicit path to the GPG program used by rpmsign
+    %__gpg /usr/bin/gpg
+
+    # Key ID used for signing (must match the key in global.cfg)
+    %_gpg_name 9E736AF1D162F3F6FF21E3659A1A41C5DDF5A11A
+    ```
+
+### 3\. Setting the Key ID in `global.cfg`
+
+Verify that the `gpg_key_id` variable in the `config/global.cfg` file contains the correct key ID (the same as in `~/.rpmmacros`).
+
+```cfg
+# GPG key configuration for signing RPM packages
+gpg_key_id="9E736AF1D162F3F6FF21E3659A1A41C5DDF5A11A"
+```
+
+## <a id="license"></a> License
 
 This project is licensed under the [Apache License 2.0](LICENSE).
 

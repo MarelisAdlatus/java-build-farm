@@ -1,0 +1,8 @@
+Name:       RadioRec
+Version:    1.0.0
+Release:    1%{?dist}
+Summary:    Application for playing and recording internet radio stations.
+License:    Apache-2.0
+URL:        https://marelis.cz/aplikace-pc/radiorec
+Vendor:     Marek Liška
+Packager:   Marek Liška <adlatus@marelis.cz>
