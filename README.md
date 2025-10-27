@@ -1,7 +1,7 @@
 # Java Build Farm
 
 <p align="center">
-  <img src="docs/images/java-build-farm.png" width="640">
+  <img src="docs/images/app-image.png" width="640">
 </p>
 
 ## Obsah
@@ -111,7 +111,7 @@ Action ?
 2) Dependencies
 3) Clean
 4) Build
-5) Download (URL paths)
+5) Download (URL paths) & Sign RPM
 6) VMs Status
 7) VMs Start
 8) VMs Stop
