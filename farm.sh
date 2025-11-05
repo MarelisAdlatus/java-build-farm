@@ -382,9 +382,9 @@ clean_target() {
 
     # Determine appropriate clean command based on OS type
     if [[ "$os_type" == "lin" ]]; then
-        clean_cmd="rm -rf $build_dir"
+        clean_cmd="rm -rf \"$build_dir/$app_name/$app_version\""
     elif [[ "$os_type" == "win" ]]; then
-        clean_cmd="if exist \".\\$build_dir\" (rmdir /s /q \".\\$build_dir\")"
+        clean_cmd="if exist \".\\$build_dir\\$app_name\\$app_version\" (rmdir /s /q \".\\$build_dir\\$app_name\\$app_version\")"
     else
         echo -e "${RED}Unsupported OS: $os_type${NC}"
         return 1  # Indicate an error
@@ -417,6 +417,29 @@ clean_all() {
         IFS=' ' read -r os_type os_name <<< "${hosts[$s]}" # Use the key to get the value
         clean_target "$s" "$os_type" || echo "Error cleaning $s: SSH connection failed."
     done
+
+    # Remove release directory for current app/version
+
+    local dir_app_name
+    local dir_app_version
+
+    if [[ "$release_url_paths" == "yes" ]]; then
+        dir_app_name=$(url_path "$app_name")
+        dir_app_version=$(url_path "$app_version")
+    else
+        dir_app_name="$app_name"
+        dir_app_version="$app_version"
+    fi
+
+    local target_release_dir="$release_dir/$dir_app_name/$dir_app_version"
+
+    if [[ -d "$target_release_dir" ]]; then
+        echo -e "${YELLOW}:: Removing release directory $target_release_dir${NC}"
+        rm -rf "$target_release_dir"
+        echo -e "${GREEN}:: Release directory removed.${NC}"
+    else
+        echo -e "${YELLOW}:: No release directory to remove at $target_release_dir${NC}"
+    fi    
 }
 
 # Helper function to create the application archive (once)
@@ -707,6 +730,54 @@ sign_rpms() {
     echo -e "${GREEN}:: RPM signing completed.${NC}"
 }
 
+# Function to generate SHA256 files for all artifacts
+generate_sha256() {
+    echo -e "${YELLOW}:: Generating SHA256 checksums...${NC}"
+
+    # Path to specific application/version
+    local dir_app_name
+    local dir_app_version
+
+    if [[ "$release_url_paths" == "yes" ]]; then
+        dir_app_name=$(url_path "$app_name")
+        dir_app_version=$(url_path "$app_version")
+    else
+        dir_app_name="$app_name"
+        dir_app_version="$app_version"
+    fi
+
+    # Target directory for search
+    local target_dir="$release_dir/$dir_app_name/$dir_app_version"
+
+    # Check if the directory exists
+    if [[ ! -d "$target_dir" ]]; then
+        echo -e "${YELLOW}No release directory found for $app_name $app_version (looked in $target_dir)${NC}"
+        return 0
+    fi
+
+    # Find files to hash (exclude existing .sha256)
+    mapfile -t files_to_hash < <(find "$target_dir" -type f ! -name "*.sha256")
+
+    if [[ ${#files_to_hash[@]} -eq 0 ]]; then
+        echo -e "${YELLOW}No files found to hash in $target_dir${NC}"
+        return 0
+    fi
+
+    echo "Found ${#files_to_hash[@]} files to hash in $target_dir:"
+    for file in "${files_to_hash[@]}"; do
+        echo " - $file"
+    done
+
+    # Generate SHA256 files
+    for file in "${files_to_hash[@]}"; do
+        sha256_file="${file}.sha256"
+        sha256sum "$file" | awk '{print $1}' > "$sha256_file"
+        echo "Generated $sha256_file"
+    done
+
+    echo -e "${GREEN}:: SHA256 generation completed.${NC}"
+}
+
 # Main menu
 show_menu() {
     echo ""
@@ -734,9 +805,9 @@ while true; do
     case $choice in
         1) check_ssh_connection && check_conditions ;;
         2) install_dependencies ;;
-        3) clean_all ;;
+        3) select_application && clean_all ;;
         4) select_application && stations_upload && stations_build ;;
-        5) select_application && stations_download && sign_rpms ;;
+        5) select_application && stations_download && sign_rpms && generate_sha256 ;;
         
         # Execute VM-related actions only if Proxmox is configured
         6) [[ -n "$proxmox_server" && -n "$proxmox_user" ]] && vm_status ;;
