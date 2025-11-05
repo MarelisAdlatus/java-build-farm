@@ -12,16 +12,16 @@
 5. [Usage](#usage)
 6. [Setting Up Build Nodes](#setting-up-build-nodes)
 7. [Preparing the Build Farm](#preparing-the-build-farm)
-8. [Configuring PowerShell on Windows](#configuring-powershell-on-windows)
+8. [Configuring PowerShell on Windows 10/11](#configuring-powershell-on-windows-1011)
 9. [Configuring SSH Key-Based Authentication](#configuring-ssh-key-based-authentication)
 10. [Configuring Passwordless Sudo for Linux Stations](#configuring-passwordless-sudo-for-linux-stations)
-11. [Configuring RPM Signing (GPG)](#configuring-gpg-signing)
+11. [Configuring RPM Signing (GPG)](#configuring-rpm-signing-gpg)
 12. [License](#license)
 
-## <a id="overview"></a> Overview
+## Overview
 Java Build Farm is a script-based automation system for building and packaging Java applications across multiple operating systems and distributions. It enables automatic dependency installation, building, and distribution of Java applications using Proxmox virtual machines and remote hosts.
 
-## <a id="features"></a> Features
+## Features
 - Automated dependency installation for Linux and Windows hosts
 - Support for multiple distributions (Debian, Ubuntu, Fedora, Rocky Linux, openSUSE, Windows 10/11)
 - SSH-based remote execution and deployment
@@ -33,7 +33,7 @@ Java Build Farm is a script-based automation system for building and packaging J
 - Remote VM/host provisioning via Proxmox
 - Secure, passwordless SSH authentication
 
-## <a id="prerequisites"></a> Prerequisites
+## Prerequisites
 
 ### On Java Build Farm (local machine):
 - **Linux with GNU Bash**
@@ -52,7 +52,7 @@ Java Build Farm is a script-based automation system for building and packaging J
 - **Windows stations:**
     - PowerShell 7.2.2 or higher
 
-## <a id="directory-structure"></a> Directory Structure
+## Directory Structure
 
 ```
 java-build-farm/
@@ -90,7 +90,7 @@ java-build-farm/
                 └── *.tar.gz         # Archive versions
 ```
 
-## <a id="usage"></a> Usage
+## Usage
 
 ### Running `farm.sh`
 
@@ -136,10 +136,15 @@ graph TD;
     B -->|Install Dependencies| C2(2 = Dependencies);
     B -->|Remove Old Builds| C3(3 = Clean);
 
+    %% Dependencies
     C2 -->|Copy & Run Script| D1(Windows: depends.ps1);
     C2 -->|Copy & Run Script| D2(Linux: depends.sh);
-    D1 -->|Install Java, 7zip| D3(Windows Host);
-    D2 -->|Install Java, fakeroot| D4(Linux Host);
+    D1 --> D3(Windows Host: Install Java, 7zip);
+    D2 --> D4(Linux Host: Install Java, fakeroot);
+
+    %% Clean
+    C3 -->|Select App & Version| E1(Delete Build Directory on All Hosts);
+    E1 --> E2(Delete Release Directory Locally);
 
     style C1 stroke:#aaa,stroke-width:3px,font-weight:bold;
     style C2 stroke:#aaa,stroke-width:3px,font-weight:bold;
@@ -163,8 +168,10 @@ graph TD;
 - Ensures all necessary tools are installed for the build process.  
 
 ##### **3) Clean**  
+- Allows the user to **select an application** from the `apps/` directory.
 - Removes **temporary build artifacts** from all nodes.  
 - Deletes the **build directory** on each machine.  
+- Deletes the corresponding **release directory** for the selected application/version.  
 - Ensures old files do not interfere with new builds.  
 - Uses appropriate **deletion commands** for Linux and Windows environments.  
 
@@ -179,21 +186,24 @@ graph TD;
     B -->|Compile & Package App| C4(4 = Build);
     B -->|Retrieve Built Packages| C5(5 = Download);
 
-    C4 -->|Select App| E1(Copy Source Code);
-    E1 -->|Run Script| E2(Windows: AppName.ps1);
-    E1 -->|Run Script| E3(Linux: AppName.sh);
-    E2 -->|Package exe, msi| F1(Archive Output);
-    E3 -->|Package deb, rpm| F1;
+    %% Build
+    C4 -->|Select App & Version| E1(Copy Source Code);
+    E1 --> E2(Windows: AppName.ps1);
+    E1 --> E3(Linux: AppName.sh);
+    E2 --> F1(Archive Output);
+    E3 --> F1;
 
-    C5 -->|Retrieve Packages via SCP| H1(Files Retrieved to Local Directory);
-    H1 -->|Apply GPG Signature| G1(Sign RPM Packages);
-    G1 -->|Process Complete| I1(Packages Stored in Release Dir);
+    %% Download
+    C5 -->|Select App & Version| D2(Retrieve Packages via SCP);
+    D2 --> D3(Sign RPM Packages);
+    D3 --> D4(Generate SHA256 Checksums);
 
     style C4 stroke:#aaa,stroke-width:3px,font-weight:bold;
     style C5 stroke:#aaa,stroke-width:3px,font-weight:bold;
 ```
 
-##### **4) Build**  
+##### **4) Build**
+
 - Allows the user to **select an application** from the `apps/` directory.  
 - Copies the **application source code** to the target machine.  
 - Runs the **platform-specific build script**:  
@@ -203,11 +213,15 @@ graph TD;
 - Archives the final build artifacts in the **release directory**.  
 
 ##### **5) Download**
-* Retrieves **built application artifacts** from remote machines.
-* Uses **SSH & SCP** to copy the packaged files.
-* Optionally applies URL path optimization (lowercase, dashes) if `release_url_paths=yes`.
-* Stores them in the local **release directory**.
-* Automatically signs all found `.rpm` packages using the GPG key specified in `global.cfg`.
+
+- Allows the user to **select an application** from the `apps/` directory.  
+- Retrieves **built application artifacts** from remote machines.
+- Uses **SSH & SCP** to copy the packaged files.
+- Optionally applies URL path optimization (lowercase, dashes) if `release_url_paths=yes`.
+- Stores them in the local **release directory**.
+- Automatically signs all found `.rpm` packages using the GPG key specified in `global.cfg`.
+- Generates **SHA256 checksum files** (`filename.sha256`) for all downloaded files.
+
 ---
 
 #### Virtual Machine Management (VMs Status, Start, Stop)
@@ -243,7 +257,7 @@ graph TD;
 
 ---
 
-### <a id="setting-up-build-nodes"></a> Setting Up Build Nodes
+### Setting Up Build Nodes
 The build farm consists of virtual machines (VMs) and/or physical hosts that are configured to perform automated builds. The configuration is managed through the following files:
 
 #### Global Configuration (`config/global.cfg`)
@@ -331,7 +345,7 @@ The build farm consists of virtual machines (VMs) and/or physical hosts that are
    marel@192.168.88.10 win Windows 11 Pro 24H2 x64
    ```
 
-## <a id="preparing-the-build-farm"></a> Preparing the Build Farm
+## Preparing the Build Farm
 
 ### Installing Proxmox VE
 
@@ -787,7 +801,7 @@ This section provides step-by-step instructions for setting up virtual machines 
 
 ---
 
-## <a id="configuring-powershell-on-windows"></a> Configuring PowerShell on Windows 10/11
+## Configuring PowerShell on Windows 10/11
 The PowerShell installation can be downloaded here: [https://github.com/PowerShell/PowerShell/releases](https://github.com/PowerShell/PowerShell/releases)
 
 By default, Windows restricts running PowerShell scripts (.ps1) for security reasons.
@@ -811,7 +825,7 @@ By default, Windows restricts running PowerShell scripts (.ps1) for security rea
    ```
    - If prompted, confirm and press Enter.
 
-## <a id="configuring-ssh-key-based-authentication"></a> Configuring SSH Key-Based Authentication
+## Configuring SSH Key-Based Authentication
 To securely connect to remote build machines without a password, follow these steps to generate an **Ed25519 SSH key** and configure authentication.
 
 ### Step 1: Generate an SSH Key (On the Machine Running `farm.sh`)
@@ -909,7 +923,7 @@ If the setup was successful, you should be able to connect without a password.
 
 Repeat these steps for each target machine in `hosts.cfg` and `vms.cfg`.
 
-## <a id="configuring-passwordless-sudo-for-linux-stations"></a> Configuring Passwordless Sudo for Linux Stations
+## Configuring Passwordless Sudo for Linux Stations
 On Linux build stations, `sudo` must be configured to allow passwordless execution of required commands.
 
 #### Debian, Ubuntu, and derivatives:
@@ -954,7 +968,7 @@ sudo reboot
 
 After these steps, the build user will be able to execute commands with `sudo` without being prompted for a password.
 
-## <a id="configuring-gpg-signing"></a> Configuring RPM Signing (GPG)
+## Configuring RPM Signing (GPG)
 
 For automatic RPM package signing during the **5) Download** step, the GPG environment must be properly configured on the local machine (the machine running `farm.sh`).
 
@@ -1009,7 +1023,7 @@ Verify that the `gpg_key_id` variable in the `config/global.cfg` file contains t
 gpg_key_id="9E736AF1D162F3F6FF21E3659A1A41C5DDF5A11A"
 ```
 
-## <a id="license"></a> License
+## License
 
 This project is licensed under the [Apache License 2.0](LICENSE).
 
