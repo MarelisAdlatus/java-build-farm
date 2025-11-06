@@ -61,6 +61,7 @@ check_command rm
 check_command mkdir
 check_command chmod
 check_command rpmsign
+check_command sha256sum
 
 # all command line arguments
 arguments="$@"
