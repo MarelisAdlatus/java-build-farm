@@ -39,7 +39,7 @@ Java Build Farm is a script-based automation system for building and packaging J
 - **Linux with GNU Bash**
 - **Internet access**
 - **SSH client:** `ssh`, `scp`
-- **Other utilities:** `ping`, `sudo`, `bash`, `tar`, `find`, `awk`, `sed`, `cut`, `head`, `tr`, `rm`, `mkdir`, `chmod`
+- **Other utilities:** `ping`, `sudo`, `bash`, `tar`, `find`, `awk`, `sed`, `cut`, `head`, `tr`, `rm`, `mkdir`, `chmod`, `sha256sum`
 - **RPM Signing:** `rpmsign` (usually from the `rpm-sign` or `rpm` package) and `gpg` (for key management)
 - **Proxmox:** (If using Proxmox for VMs)
 - **PowerShell 7.2 or higher:** (For building on Windows hosts)
@@ -63,7 +63,7 @@ java-build-farm/
 │           ├── AppName.iss          # Windows installer (Inno Setup script)
 │           ├── AppName.properties   # File association definitions
 │           ├── AppName.ps1          # Build script for Windows
-│           ├── AppName.sh           # Build script for Linux/macOS
+│           ├── AppName.sh           # Build script for Linux
 │           ├── addons/              # Additional resources such as licenses
 │           │   └── License.txt
 │           ├── build/               # Compiled application JARs
@@ -196,7 +196,8 @@ graph TD;
     %% Download
     C5 -->|Select App & Version| D2(Retrieve Packages via SCP);
     D2 --> D3(Sign RPM Packages);
-    D3 --> D4(Generate SHA256 Checksums);
+    D3 --> D4(SHA256 Checksums);
+    D4 --> D5(Saved to local directory);
 
     style C4 stroke:#aaa,stroke-width:3px,font-weight:bold;
     style C5 stroke:#aaa,stroke-width:3px,font-weight:bold;
