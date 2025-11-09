@@ -111,10 +111,11 @@ Action ?
 2) Dependencies
 3) Clean
 4) Build
-5) Download (URL paths) & Sign RPM
-6) VMs Status
-7) VMs Start
-8) VMs Stop
+5) Download (URL paths)
+6) Sign & Hash
+7) VMs Status
+8) VMs Start
+9) VMs Stop
 q) Quit
 #?
 ```
@@ -177,30 +178,36 @@ graph TD;
 
 ---
 
-#### Build & Deployment (Build, Download)
+#### Build & Deployment (Build, Download, Sign & Hash)
 
 ```mermaid
 graph TD;
     A[User] -->|Runs farm.sh| B(Main menu);
 
-    B -->|Compile & Package App| C4(4 = Build);
-    B -->|Retrieve Built Packages| C5(5 = Download);
+    B -->|Compile & Package App| C4[4 = Build];
+    B -->|Retrieve Built Packages| C5[5 = Download];
+    B -->|Sign & Hash| C6[6 = Sign & Hash];
 
     %% Build
-    C4 -->|Select App & Version| E1(Copy Source Code);
-    E1 --> E2(Windows: AppName.ps1);
-    E1 --> E3(Linux: AppName.sh);
-    E2 --> F1(Archive Output);
+    C4 -->|Select App & Version| E1[Copy Source Code];
+    E1 --> E2[Windows: AppName.ps1];
+    E1 --> E3[Linux: AppName.sh];
+    E2 --> F1[Compile & Package];
     E3 --> F1;
+    F1 --> F2[Archive artifacts on the build computer];
 
     %% Download
-    C5 -->|Select App & Version| D2(Retrieve Packages via SCP);
-    D2 --> D3(Sign RPM Packages);
-    D3 --> D4(SHA256 Checksums);
-    D4 --> D5(Saved to local directory);
+    C5 -->|Select App & Version| D2[Retrieve Packages via SSH/SCP];
+    D2 --> D3[Apply URL path optimization];
+    D3 --> D4[Saved on local machine];
+
+    %% Sign & Hash
+    C6 -->|Select App & Version| G1[Sign .rpm packages with GPG];
+    G1 --> G2[Generate SHA256 checksum files];
 
     style C4 stroke:#aaa,stroke-width:3px,font-weight:bold;
     style C5 stroke:#aaa,stroke-width:3px,font-weight:bold;
+    style C6 stroke:#aaa,stroke-width:3px,font-weight:bold;
 ```
 
 ##### **4) Build**
@@ -220,6 +227,10 @@ graph TD;
 - Uses **SSH & SCP** to copy the packaged files.
 - Optionally applies URL path optimization (lowercase, dashes) if `release_url_paths=yes`.
 - Stores them in the local **release directory**.
+
+##### **6) Sign & Hash**
+
+- Allows the user to **select an application** from the `apps/` directory.  
 - Automatically signs all found `.rpm` packages using the GPG key specified in `global.cfg`.
 - Generates **SHA256 checksum files** (`filename.sha256`) for all downloaded files.
 
@@ -231,9 +242,9 @@ graph TD;
 graph TD;
     A[User] -->|Runs farm.sh| B(Main menu);
 
-    B -->|Check Proxmox VMs| C7(6 = VMs Status);
-    B -->|Start Proxmox VMs| C8(7 = VMs Start);
-    B -->|Stop Proxmox VMs| C9(8 = VMs Stop);
+    B -->|Check Proxmox VMs| C7(7 = VMs Status);
+    B -->|Start Proxmox VMs| C8(8 = VMs Start);
+    B -->|Stop Proxmox VMs| C9(9 = VMs Stop);
 
     C7 -->|Check Status| I1(Running / Stopped);
     C8 -->|Start VMs| I2(Ready Build);
@@ -243,16 +254,16 @@ graph TD;
     style C8 stroke:#aaa,stroke-width:3px,font-weight:bold;
     style C9 stroke:#aaa,stroke-width:3px,font-weight:bold;
 ```
-##### **6) VMs Status**  
+##### **7) VMs Status**  
 - Queries the **Proxmox hypervisor** for VM status.  
 - Lists each VM as **Running, Stopped, or Unavailable**.  
 - Helps administrators monitor the **build infrastructure**.  
 
-##### **7) VMs Start**  
+##### **8) VMs Start**  
 - Starts each VM using **Proxmox commands**.  
 - Ensures the machine is **ready before proceeding** with builds.  
 
-##### **8) VMs Stop**  
+##### **9) VMs Stop**  
 - Gracefully **shuts down virtual machines** after builds are completed.  
 - Helps **free up system resources** while ensuring all tasks have been executed.
 

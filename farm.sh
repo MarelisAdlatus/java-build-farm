@@ -772,7 +772,8 @@ generate_sha256() {
     # Generate SHA256 files
     for file in "${files_to_hash[@]}"; do
         sha256_file="${file}.sha256"
-        sha256sum "$file" | awk '{print $1}' > "$sha256_file"
+        hash=$(sha256sum "$file" | awk '{print $1}')
+        printf "%s  %s\n" "$hash" "$(basename "$file")" > "$sha256_file"
         echo "Generated $sha256_file"
     done
 
@@ -787,13 +788,14 @@ show_menu() {
     echo "2) Dependencies"
     echo "3) Clean"
     echo "4) Build"
-    echo "5) Download $( [ "$release_url_paths" == "yes" ] && echo "(URL paths)" ) & Sign RPM"
+    echo "5) Download $( [ "$release_url_paths" == "yes" ] && echo "(URL paths)" )"
+    echo "6) Sign & Hash"
 
     # Show VM options only if Proxmox is configured
     if [[ -n "$proxmox_server" && -n "$proxmox_user" ]]; then
-        echo "6) VMs Status"
-        echo "7) VMs Start"
-        echo "8) VMs Stop"
+        echo "7) VMs Status"
+        echo "8) VMs Start"
+        echo "9) VMs Stop"
     fi
 
     echo "q) Quit"
@@ -808,12 +810,13 @@ while true; do
         2) install_dependencies ;;
         3) select_application && clean_all ;;
         4) select_application && stations_upload && stations_build ;;
-        5) select_application && stations_download && sign_rpms && generate_sha256 ;;
+        5) select_application && stations_download ;;
+        6) select_application && sign_rpms && generate_sha256 ;;
         
         # Execute VM-related actions only if Proxmox is configured
-        6) [[ -n "$proxmox_server" && -n "$proxmox_user" ]] && vm_status ;;
-        7) [[ -n "$proxmox_server" && -n "$proxmox_user" ]] && vm_start ;; 
-        8) [[ -n "$proxmox_server" && -n "$proxmox_user" ]] && vm_stop ;; 
+        7) [[ -n "$proxmox_server" && -n "$proxmox_user" ]] && vm_status ;;
+        8) [[ -n "$proxmox_server" && -n "$proxmox_user" ]] && vm_start ;; 
+        9) [[ -n "$proxmox_server" && -n "$proxmox_user" ]] && vm_stop ;; 
         
         q) exit 0 ;;
         *) echo -e "${RED}Invalid choice${NC}" ;;
