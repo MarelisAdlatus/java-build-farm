@@ -4,24 +4,29 @@
   <img src="docs/images/app-image.png" width="640">
 </p>
 
-## Obsah
-1. [Overview](#overview)
-2. [Features](#features)
-3. [Prerequisites](#prerequisites)
-4. [Directory Structure](#directory-structure)
-5. [Usage](#usage)
-6. [Setting Up Build Nodes](#setting-up-build-nodes)
-7. [Preparing the Build Farm](#preparing-the-build-farm)
-8. [Configuring PowerShell on Windows 10/11](#configuring-powershell-on-windows-1011)
-9. [Configuring SSH Key-Based Authentication](#configuring-ssh-key-based-authentication)
-10. [Configuring Passwordless Sudo for Linux Stations](#configuring-passwordless-sudo-for-linux-stations)
-11. [Configuring RPM Signing (GPG)](#configuring-rpm-signing-gpg)
-12. [License](#license)
+## Table of Contents
+
+- [Overview](#overview)
+- [Features](#features)
+- [Prerequisites](#prerequisites)
+- [Directory Structure](#directory-structure)
+- [Usage](#usage)
+- [Setting Up Build Nodes](#setting-up-build-nodes)
+- [Preparing the Build Farm](#preparing-the-build-farm)
+- [Configuring PowerShell on Windows 10/11](#configuring-powershell-on-windows-1011)
+- [Configuring SSH Key-Based Authentication](#configuring-ssh-key-based-authentication)
+- [Configuring Passwordless Sudo for Linux Stations](#configuring-passwordless-sudo-for-linux-stations)
+- [Configuring RPM Signing (GPG)](#configuring-rpm-signing-gpg)
+- [License](#license)
 
 ## Overview
+
 Java Build Farm is a script-based automation system for building and packaging Java applications across multiple operating systems and distributions. It enables automatic dependency installation, building, and distribution of Java applications using Proxmox virtual machines and remote hosts.
 
+> The RadioRec application is used as an example. More information can be found in the repository on **[GitHub](https://github.com/MarelisAdlatus/radiorec)**.
+
 ## Features
+
 - Automated dependency installation for Linux and Windows hosts
 - Support for multiple distributions (Debian, Ubuntu, Fedora, Rocky Linux, openSUSE, Windows 10/11)
 - SSH-based remote execution and deployment
@@ -36,6 +41,7 @@ Java Build Farm is a script-based automation system for building and packaging J
 ## Prerequisites
 
 ### On Java Build Farm (local machine):
+
 - **Linux with GNU Bash**
 - **Internet access**
 - **SSH client:** `ssh`, `scp`
@@ -45,6 +51,7 @@ Java Build Farm is a script-based automation system for building and packaging J
 - **PowerShell 7.2 or higher:** (For building on Windows hosts)
 
 ### On Build Stations (remote machines):
+
 - **Internet access**
 - **SSH Server:** With key-based authentication enabled
 - **Linux stations:**
@@ -153,6 +160,7 @@ graph TD;
 ```
 
 ##### **1) Check**  
+
 - Verifies **SSH connectivity** to all configured build nodes.  
 - Ensures machines are **reachable and correctly set up**.  
 - Checks **internet access, shell availability**, and essential system commands.  
@@ -160,6 +168,7 @@ graph TD;
 - On Windows: Checks **PowerShell version, execution policy, and connectivity**.  
 
 ##### **2) Dependencies**  
+
 - Detects **OS type** (Linux/Windows) for each build node.  
 - Copies and executes the appropriate **dependency installation script**:  
   - `depends.ps1` for Windows  
@@ -169,6 +178,7 @@ graph TD;
 - Ensures all necessary tools are installed for the build process.  
 
 ##### **3) Clean**  
+
 - Allows the user to **select an application** from the `apps/` directory.
 - Removes **temporary build artifacts** from all nodes.  
 - Deletes the **build directory** on each machine.  
@@ -254,22 +264,27 @@ graph TD;
     style C8 stroke:#aaa,stroke-width:3px,font-weight:bold;
     style C9 stroke:#aaa,stroke-width:3px,font-weight:bold;
 ```
+
 ##### **7) VMs Status**  
+
 - Queries the **Proxmox hypervisor** for VM status.  
 - Lists each VM as **Running, Stopped, or Unavailable**.  
 - Helps administrators monitor the **build infrastructure**.  
 
 ##### **8) VMs Start**  
+
 - Starts each VM using **Proxmox commands**.  
 - Ensures the machine is **ready before proceeding** with builds.  
 
 ##### **9) VMs Stop**  
+
 - Gracefully **shuts down virtual machines** after builds are completed.  
 - Helps **free up system resources** while ensuring all tasks have been executed.
 
 ---
 
 ### Setting Up Build Nodes
+
 The build farm consists of virtual machines (VMs) and/or physical hosts that are configured to perform automated builds. The configuration is managed through the following files:
 
 #### Global Configuration (`config/global.cfg`)
@@ -372,6 +387,7 @@ This section provides step-by-step instructions for setting up virtual machines 
 ### Supported Operating Systems
 
 #### Linux Distributions:
+
 - Ubuntu
 - Kubuntu
 - Xubuntu
@@ -383,10 +399,12 @@ This section provides step-by-step instructions for setting up virtual machines 
 - Rocky Linux
 
 #### Windows:
+
 - Windows 10
 - Windows 11
 
 ### General Steps for All VMs
+
 1. **Download the ISO** for the desired distribution from the official source.
 2. **Create a new VM** in Proxmox and attach the ISO.
 3. **Adjust VM settings**, such as CPU, memory, disk, and network.
@@ -397,6 +415,7 @@ This section provides step-by-step instructions for setting up virtual machines 
 ---
 
 ### Windows 10 Pro 22H2 x64
+
 - **Download**: [Windows 10 ISO](https://www.microsoft.com/cs-cz/software-download/windows10)
 - **ISO**: `Win10_22H2_Czech_x64.iso`
 - **VM Config**:
@@ -429,6 +448,7 @@ This section provides step-by-step instructions for setting up virtual machines 
    ```
 
 #### Step 1: Install Windows
+
 1. Boot from the Windows 10 ISO and proceed with the installation.
 2. During installation, attach the **VirtIO drivers ISO**:
    [VirtIO Drivers](https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.266-1/virtio-win-0.1.266.iso)
@@ -436,6 +456,7 @@ This section provides step-by-step instructions for setting up virtual machines 
 4. Complete the installation and reboot.
 
 #### Step 2: Install QEMU Guest Agent
+
 1. Mount the **VirtIO ISO** inside Windows.
 2. Install the **QEMU Guest Agent**:
    ```sh
@@ -444,6 +465,7 @@ This section provides step-by-step instructions for setting up virtual machines 
 3. Open `services.msc` and ensure that **QEMU Guest Agent** is running.
 
 #### Step 3: Install VirtIO Drivers
+
 1. Install the following drivers from the VirtIO ISO:
    ```sh
    virtio-win-gt-x64.msi
@@ -452,11 +474,13 @@ This section provides step-by-step instructions for setting up virtual machines 
 2. Reboot the system.
 
 #### Step 4: Install Spice Guest Tools
+
 1. Download and install **Spice Guest Tools**:
    [Spice Guest Tools](https://www.spice-space.org/download/windows/spice-guest-tools/spice-guest-tools-latest.exe)
 2. Reboot the system.
 
 #### Step 5: Enable Automatic Login
+
 1. Open **Settings → Accounts → Sign-in options**.
 2. Disable **Require Windows Hello sign-in for Microsoft accounts**.
 3. Run `control userpasswords2` and uncheck **Users must enter a username and password to use this computer**.
@@ -466,6 +490,7 @@ This section provides step-by-step instructions for setting up virtual machines 
 ---
 
 ### Ubuntu Desktop 24.04.2 LTS x64
+
 - **Download**: [Ubuntu Desktop](https://ubuntu.com/download/desktop)
 - **ISO**: `ubuntu-24.04.2-desktop-amd64.iso`
 - **VM Config**:
@@ -505,6 +530,7 @@ This section provides step-by-step instructions for setting up virtual machines 
 ---
 
 ### Kubuntu Desktop 24.04.2 LTS x64
+
 - **Download**: [Kubuntu](https://kubuntu.org/getkubuntu)
 - **ISO**: `kubuntu-24.04.2-desktop-amd64.iso`
 - **VM Config**:
@@ -543,6 +569,7 @@ This section provides step-by-step instructions for setting up virtual machines 
 ---
 
 ### Xubuntu Desktop 24.04.2 LTS x64
+
 - **Download**: [Xubuntu](https://xubuntu.org/download)
 - **ISO**: `xubuntu-24.04.2-desktop-amd64.iso`
 - **VM Config**:
@@ -581,6 +608,7 @@ This section provides step-by-step instructions for setting up virtual machines 
 ---
 
 ### Lubuntu Desktop 24.04.2 LTS x64
+
 - **Download**: [Lubuntu](https://lubuntu.me/downloads)
 - **ISO**: `lubuntu-24.04.2-desktop-amd64.iso`
 - **VM Config**:
@@ -619,6 +647,7 @@ This section provides step-by-step instructions for setting up virtual machines 
 ---
 
 ### openSUSE Tumbleweed x64
+
 - **Download**: [openSUSE Tumbleweed](https://download.opensuse.org/tumbleweed/iso/openSUSE-Tumbleweed-DVD-x86_64-Current.iso)
 - **ISO**: `openSUSE-Tumbleweed-DVD-x86_64-Current.iso`
 - **VM Config**:
@@ -660,6 +689,7 @@ This section provides step-by-step instructions for setting up virtual machines 
 ---
 
 ### Fedora Workstation 41 x64
+
 - **Download**: [Fedora Workstation](https://fedoraproject.org/workstation/download)
 - **ISO**: `Fedora-Workstation-Live-x86_64-41-1.4.iso`
 - **VM Config**:
@@ -699,6 +729,7 @@ This section provides step-by-step instructions for setting up virtual machines 
 ---
 
 ### Debian 12.9 x64
+
 - **Download**: [Debian](https://www.debian.org)
 - **ISO**: `debian-12.9.0-amd64-DVD-1.iso`
 - **VM Config**:
@@ -737,6 +768,7 @@ This section provides step-by-step instructions for setting up virtual machines 
 ---
 
 ### Linux Mint Cinnamon 22.1 x64
+
 - **Download**: [Linux Mint](https://www.linuxmint.com/download.php)
 - **ISO**: `linuxmint-22.1-cinnamon-64bit.iso`
 - **VM Config**:
@@ -775,6 +807,7 @@ This section provides step-by-step instructions for setting up virtual machines 
 ---
 
 ### Rocky Linux 9.5 x64
+
 - **Download**: [Rocky Linux](https://rockylinux.org)
 - **ISO**: `Rocky-9.5-x86_64-dvd.iso`
 - **VM Config**:
@@ -814,11 +847,13 @@ This section provides step-by-step instructions for setting up virtual machines 
 ---
 
 ## Configuring PowerShell on Windows 10/11
+
 The PowerShell installation can be downloaded here: [https://github.com/PowerShell/PowerShell/releases](https://github.com/PowerShell/PowerShell/releases)
 
 By default, Windows restricts running PowerShell scripts (.ps1) for security reasons.
 
 ### Enable PowerShell Script Execution
+
 1. Open PowerShell as Administrator:
    - Click on the Start menu, type "PowerShell," and right-click on "Windows PowerShell."
    - Select "Run as administrator."
@@ -838,9 +873,11 @@ By default, Windows restricts running PowerShell scripts (.ps1) for security rea
    - If prompted, confirm and press Enter.
 
 ## Configuring SSH Key-Based Authentication
+
 To securely connect to remote build machines without a password, follow these steps to generate an **Ed25519 SSH key** and configure authentication.
 
 ### Step 1: Generate an SSH Key (On the Machine Running `farm.sh`)
+
 Run the following command in the same machine where `farm.sh` is executed:
 ```sh
 ssh-keygen -t ed25519 -C "build-farm-key" -f ~/.ssh/id_ed25519
@@ -857,6 +894,7 @@ cat ~/.ssh/id_ed25519.pub
 ### Configuring SSH for Linux Build Targets
 
 ### Step 2: Connect to the Target Machine Using a Password
+
 Manually connect to each target host to ensure connectivity:
 ```sh
 ssh builduser@192.168.1.20
@@ -864,9 +902,11 @@ ssh builduser@192.168.1.20
 If prompted, type **yes** to add the host to `known_hosts`.
 
 ### Step 3: Add the Public Key to the Target Machine (Two Methods)
+
 There are two ways to add the public key to the remote machine:
 
 **Method 1: Manual Editing**
+
 Once connected, edit the `authorized_keys` file:
 ```sh
 nano ~/.ssh/authorized_keys
@@ -874,6 +914,7 @@ nano ~/.ssh/authorized_keys
 Copy and paste the public key (`id_ed25519.pub`) into `~/.ssh/authorized_keys`, save, and exit.
 
 **Method 2: Automatic Setup Using `ssh-copy-id`**
+
 Alternatively, you can use the following command from the machine running `farm.sh` to copy the public key automatically:
 ```sh
 ssh-copy-id -i ~/.ssh/id_ed25519.pub builduser@192.168.1.20
@@ -881,6 +922,7 @@ ssh-copy-id -i ~/.ssh/id_ed25519.pub builduser@192.168.1.20
 This will add the key to the `~/.ssh/authorized_keys` file without manual editing.
 
 ### Step 4: Set Correct Permissions
+
 On the remote machine, ensure SSH permissions are correct:
 ```sh
 chmod 600 ~/.ssh/authorized_keys
@@ -888,6 +930,7 @@ chmod 700 ~/.ssh
 ```
 
 ### Step 5: Test SSH Key Authentication
+
 Now, try logging in again from your local machine:
 ```sh
 ssh builduser@192.168.1.20
@@ -895,14 +938,17 @@ ssh builduser@192.168.1.20
 If the setup was successful, you should be able to connect without a password.
 
 ### Configuring SSH for Windows Build Targets
+
 If the target machine is running **Windows 10 or 11**, you need to install OpenSSH first.
 
 ### Step 2: Install OpenSSH
+
 1. Download OpenSSH for Windows from:
    [https://github.com/PowerShell/Win32-OpenSSH/releases](https://github.com/PowerShell/Win32-OpenSSH/releases)
 2. Install `OpenSSH-Win64-v9.5.0.0.msi` by following the setup instructions.
 
 ### Step 3: Modify SSH Configuration
+
 1. Download and install **Notepad++** (if not already installed):
    [https://notepad-plus-plus.org/downloads/](https://notepad-plus-plus.org/downloads/)
 2. Open `C:\ProgramData\ssh\sshd_config` in Notepad++ as Administrator.
@@ -917,6 +963,7 @@ If the target machine is running **Windows 10 or 11**, you need to install OpenS
    ```
 
 ### Step 4: Add Public Key to Windows Authorized Keys
+
 1. Create an SSH directory for the user (if it doesn’t exist):
    ```sh
    mkdir C:\Users\<user>\.ssh
@@ -927,6 +974,7 @@ If the target machine is running **Windows 10 or 11**, you need to install OpenS
    ```
 
 ### Step 5: Test SSH Key Authentication
+
 Now, try logging in from your Linux machine (or WSL Ubuntu):
 ```sh
 ssh marel@192.168.88.10
@@ -936,9 +984,11 @@ If the setup was successful, you should be able to connect without a password.
 Repeat these steps for each target machine in `hosts.cfg` and `vms.cfg`.
 
 ## Configuring Passwordless Sudo for Linux Stations
+
 On Linux build stations, `sudo` must be configured to allow passwordless execution of required commands.
 
 #### Debian, Ubuntu, and derivatives:
+
 1. Open the sudoers file using `visudo`:
    ```sh
    sudo EDITOR=nano visudo
@@ -956,6 +1006,7 @@ On Linux build stations, `sudo` must be configured to allow passwordless executi
    If the user is in sudo, its group permissions may override individual passwordless sudo settings. Removing the user ensures that passwordless sudo works as expected based on user-specific configurations.
 
 #### Fedora, Rocky Linux, and openSUSE:
+
 1. Open the sudoers file using `visudo`:
    ```sh
    sudo EDITOR=nano visudo
@@ -973,6 +1024,7 @@ On Linux build stations, `sudo` must be configured to allow passwordless executi
    If the user is in wheel, its group permissions may override individual passwordless sudo settings. Removing the user ensures that passwordless sudo works as expected based on user-specific configurations.
 
 ### Apply Changes
+
 To ensure the changes take effect, restart the VM:
 ```sh
 sudo reboot
