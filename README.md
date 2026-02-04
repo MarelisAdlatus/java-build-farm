@@ -4,24 +4,29 @@
   <img src="docs/images/app-image.png" width="640">
 </p>
 
-## Obsah
-1. [Overview](#overview)
-2. [Features](#features)
-3. [Prerequisites](#prerequisites)
-4. [Directory Structure](#directory-structure)
-5. [Usage](#usage)
-6. [Setting Up Build Nodes](#setting-up-build-nodes)
-7. [Preparing the Build Farm](#preparing-the-build-farm)
-8. [Configuring PowerShell on Windows](#configuring-powershell-on-windows)
-9. [Configuring SSH Key-Based Authentication](#configuring-ssh-key-based-authentication)
-10. [Configuring Passwordless Sudo for Linux Stations](#configuring-passwordless-sudo-for-linux-stations)
-11. [Configuring RPM Signing (GPG)](#configuring-gpg-signing)
-12. [License](#license)
+## Table of Contents
 
-## <a id="overview"></a> Overview
+- [Overview](#overview)
+- [Features](#features)
+- [Prerequisites](#prerequisites)
+- [Directory Structure](#directory-structure)
+- [Usage](#usage)
+- [Setting Up Build Nodes](#setting-up-build-nodes)
+- [Preparing the Build Farm](#preparing-the-build-farm)
+- [Configuring PowerShell on Windows 10/11](#configuring-powershell-on-windows-1011)
+- [Configuring SSH Key-Based Authentication](#configuring-ssh-key-based-authentication)
+- [Configuring Passwordless Sudo for Linux Stations](#configuring-passwordless-sudo-for-linux-stations)
+- [Configuring RPM Signing (GPG)](#configuring-rpm-signing-gpg)
+- [License](#license)
+
+## Overview
+
 Java Build Farm is a script-based automation system for building and packaging Java applications across multiple operating systems and distributions. It enables automatic dependency installation, building, and distribution of Java applications using Proxmox virtual machines and remote hosts.
 
-## <a id="features"></a> Features
+> The RadioRec application is used as an example. More information can be found in the repository on **[GitHub](https://github.com/MarelisAdlatus/radiorec)**.
+
+## Features
+
 - Automated dependency installation for Linux and Windows hosts
 - Support for multiple distributions (Debian, Ubuntu, Fedora, Rocky Linux, openSUSE, Windows 10/11)
 - SSH-based remote execution and deployment
@@ -33,18 +38,20 @@ Java Build Farm is a script-based automation system for building and packaging J
 - Remote VM/host provisioning via Proxmox
 - Secure, passwordless SSH authentication
 
-## <a id="prerequisites"></a> Prerequisites
+## Prerequisites
 
 ### On Java Build Farm (local machine):
+
 - **Linux with GNU Bash**
 - **Internet access**
 - **SSH client:** `ssh`, `scp`
-- **Other utilities:** `ping`, `sudo`, `bash`, `tar`, `find`, `awk`, `sed`, `cut`, `head`, `tr`, `rm`, `mkdir`, `chmod`
+- **Other utilities:** `ping`, `sudo`, `bash`, `tar`, `find`, `awk`, `sed`, `cut`, `head`, `tr`, `rm`, `mkdir`, `chmod`, `sha256sum`
 - **RPM Signing:** `rpmsign` (usually from the `rpm-sign` or `rpm` package) and `gpg` (for key management)
 - **Proxmox:** (If using Proxmox for VMs)
 - **PowerShell 7.2 or higher:** (For building on Windows hosts)
 
 ### On Build Stations (remote machines):
+
 - **Internet access**
 - **SSH Server:** With key-based authentication enabled
 - **Linux stations:**
@@ -52,7 +59,7 @@ Java Build Farm is a script-based automation system for building and packaging J
 - **Windows stations:**
     - PowerShell 7.2.2 or higher
 
-## <a id="directory-structure"></a> Directory Structure
+## Directory Structure
 
 ```
 java-build-farm/
@@ -63,7 +70,7 @@ java-build-farm/
 │           ├── AppName.iss          # Windows installer (Inno Setup script)
 │           ├── AppName.properties   # File association definitions
 │           ├── AppName.ps1          # Build script for Windows
-│           ├── AppName.sh           # Build script for Linux/macOS
+│           ├── AppName.sh           # Build script for Linux
 │           ├── addons/              # Additional resources such as licenses
 │           │   └── License.txt
 │           ├── build/               # Compiled application JARs
@@ -90,7 +97,7 @@ java-build-farm/
                 └── *.tar.gz         # Archive versions
 ```
 
-## <a id="usage"></a> Usage
+## Usage
 
 ### Running `farm.sh`
 
@@ -111,10 +118,11 @@ Action ?
 2) Dependencies
 3) Clean
 4) Build
-5) Download (URL paths) & Sign RPM
-6) VMs Status
-7) VMs Start
-8) VMs Stop
+5) Download (URL paths)
+6) Sign & Hash
+7) VMs Status
+8) VMs Start
+9) VMs Stop
 q) Quit
 #?
 ```
@@ -136,10 +144,15 @@ graph TD;
     B -->|Install Dependencies| C2(2 = Dependencies);
     B -->|Remove Old Builds| C3(3 = Clean);
 
+    %% Dependencies
     C2 -->|Copy & Run Script| D1(Windows: depends.ps1);
     C2 -->|Copy & Run Script| D2(Linux: depends.sh);
-    D1 -->|Install Java, 7zip| D3(Windows Host);
-    D2 -->|Install Java, fakeroot| D4(Linux Host);
+    D1 --> D3(Windows Host: Install Java, 7zip);
+    D2 --> D4(Linux Host: Install Java, fakeroot);
+
+    %% Clean
+    C3 -->|Select App & Version| E1(Delete Build Directory on All Hosts);
+    E1 --> E2(Delete Release Directory Locally);
 
     style C1 stroke:#aaa,stroke-width:3px,font-weight:bold;
     style C2 stroke:#aaa,stroke-width:3px,font-weight:bold;
@@ -147,6 +160,7 @@ graph TD;
 ```
 
 ##### **1) Check**  
+
 - Verifies **SSH connectivity** to all configured build nodes.  
 - Ensures machines are **reachable and correctly set up**.  
 - Checks **internet access, shell availability**, and essential system commands.  
@@ -154,6 +168,7 @@ graph TD;
 - On Windows: Checks **PowerShell version, execution policy, and connectivity**.  
 
 ##### **2) Dependencies**  
+
 - Detects **OS type** (Linux/Windows) for each build node.  
 - Copies and executes the appropriate **dependency installation script**:  
   - `depends.ps1` for Windows  
@@ -163,37 +178,50 @@ graph TD;
 - Ensures all necessary tools are installed for the build process.  
 
 ##### **3) Clean**  
+
+- Allows the user to **select an application** from the `apps/` directory.
 - Removes **temporary build artifacts** from all nodes.  
 - Deletes the **build directory** on each machine.  
+- Deletes the corresponding **release directory** for the selected application/version.  
 - Ensures old files do not interfere with new builds.  
 - Uses appropriate **deletion commands** for Linux and Windows environments.  
 
 ---
 
-#### Build & Deployment (Build, Download)
+#### Build & Deployment (Build, Download, Sign & Hash)
 
 ```mermaid
 graph TD;
     A[User] -->|Runs farm.sh| B(Main menu);
 
-    B -->|Compile & Package App| C4(4 = Build);
-    B -->|Retrieve Built Packages| C5(5 = Download);
+    B -->|Compile & Package App| C4[4 = Build];
+    B -->|Retrieve Built Packages| C5[5 = Download];
+    B -->|Sign & Hash| C6[6 = Sign & Hash];
 
-    C4 -->|Select App| E1(Copy Source Code);
-    E1 -->|Run Script| E2(Windows: AppName.ps1);
-    E1 -->|Run Script| E3(Linux: AppName.sh);
-    E2 -->|Package exe, msi| F1(Archive Output);
-    E3 -->|Package deb, rpm| F1;
+    %% Build
+    C4 -->|Select App & Version| E1[Copy Source Code];
+    E1 --> E2[Windows: AppName.ps1];
+    E1 --> E3[Linux: AppName.sh];
+    E2 --> F1[Compile & Package];
+    E3 --> F1;
+    F1 --> F2[Archive artifacts on the build computer];
 
-    C5 -->|Retrieve Packages via SCP| H1(Files Retrieved to Local Directory);
-    H1 -->|Apply GPG Signature| G1(Sign RPM Packages);
-    G1 -->|Process Complete| I1(Packages Stored in Release Dir);
+    %% Download
+    C5 -->|Select App & Version| D2[Retrieve Packages via SSH/SCP];
+    D2 --> D3[Apply URL path optimization];
+    D3 --> D4[Saved on local machine];
+
+    %% Sign & Hash
+    C6 -->|Select App & Version| G1[Sign .rpm packages with GPG];
+    G1 --> G2[Generate SHA256 checksum files];
 
     style C4 stroke:#aaa,stroke-width:3px,font-weight:bold;
     style C5 stroke:#aaa,stroke-width:3px,font-weight:bold;
+    style C6 stroke:#aaa,stroke-width:3px,font-weight:bold;
 ```
 
-##### **4) Build**  
+##### **4) Build**
+
 - Allows the user to **select an application** from the `apps/` directory.  
 - Copies the **application source code** to the target machine.  
 - Runs the **platform-specific build script**:  
@@ -203,11 +231,19 @@ graph TD;
 - Archives the final build artifacts in the **release directory**.  
 
 ##### **5) Download**
-* Retrieves **built application artifacts** from remote machines.
-* Uses **SSH & SCP** to copy the packaged files.
-* Optionally applies URL path optimization (lowercase, dashes) if `release_url_paths=yes`.
-* Stores them in the local **release directory**.
-* Automatically signs all found `.rpm` packages using the GPG key specified in `global.cfg`.
+
+- Allows the user to **select an application** from the `apps/` directory.  
+- Retrieves **built application artifacts** from remote machines.
+- Uses **SSH & SCP** to copy the packaged files.
+- Optionally applies URL path optimization (lowercase, dashes) if `release_url_paths=yes`.
+- Stores them in the local **release directory**.
+
+##### **6) Sign & Hash**
+
+- Allows the user to **select an application** from the `apps/` directory.  
+- Automatically signs all found `.rpm` packages using the GPG key specified in `global.cfg`.
+- Generates **SHA256 checksum files** (`filename.sha256`) for all downloaded files.
+
 ---
 
 #### Virtual Machine Management (VMs Status, Start, Stop)
@@ -216,9 +252,9 @@ graph TD;
 graph TD;
     A[User] -->|Runs farm.sh| B(Main menu);
 
-    B -->|Check Proxmox VMs| C7(6 = VMs Status);
-    B -->|Start Proxmox VMs| C8(7 = VMs Start);
-    B -->|Stop Proxmox VMs| C9(8 = VMs Stop);
+    B -->|Check Proxmox VMs| C7(7 = VMs Status);
+    B -->|Start Proxmox VMs| C8(8 = VMs Start);
+    B -->|Stop Proxmox VMs| C9(9 = VMs Stop);
 
     C7 -->|Check Status| I1(Running / Stopped);
     C8 -->|Start VMs| I2(Ready Build);
@@ -228,22 +264,27 @@ graph TD;
     style C8 stroke:#aaa,stroke-width:3px,font-weight:bold;
     style C9 stroke:#aaa,stroke-width:3px,font-weight:bold;
 ```
-##### **6) VMs Status**  
+
+##### **7) VMs Status**  
+
 - Queries the **Proxmox hypervisor** for VM status.  
 - Lists each VM as **Running, Stopped, or Unavailable**.  
 - Helps administrators monitor the **build infrastructure**.  
 
-##### **7) VMs Start**  
+##### **8) VMs Start**  
+
 - Starts each VM using **Proxmox commands**.  
 - Ensures the machine is **ready before proceeding** with builds.  
 
-##### **8) VMs Stop**  
+##### **9) VMs Stop**  
+
 - Gracefully **shuts down virtual machines** after builds are completed.  
 - Helps **free up system resources** while ensuring all tasks have been executed.
 
 ---
 
-### <a id="setting-up-build-nodes"></a> Setting Up Build Nodes
+### Setting Up Build Nodes
+
 The build farm consists of virtual machines (VMs) and/or physical hosts that are configured to perform automated builds. The configuration is managed through the following files:
 
 #### Global Configuration (`config/global.cfg`)
@@ -331,7 +372,7 @@ The build farm consists of virtual machines (VMs) and/or physical hosts that are
    marel@192.168.88.10 win Windows 11 Pro 24H2 x64
    ```
 
-## <a id="preparing-the-build-farm"></a> Preparing the Build Farm
+## Preparing the Build Farm
 
 ### Installing Proxmox VE
 
@@ -346,6 +387,7 @@ This section provides step-by-step instructions for setting up virtual machines 
 ### Supported Operating Systems
 
 #### Linux Distributions:
+
 - Ubuntu
 - Kubuntu
 - Xubuntu
@@ -357,10 +399,12 @@ This section provides step-by-step instructions for setting up virtual machines 
 - Rocky Linux
 
 #### Windows:
+
 - Windows 10
 - Windows 11
 
 ### General Steps for All VMs
+
 1. **Download the ISO** for the desired distribution from the official source.
 2. **Create a new VM** in Proxmox and attach the ISO.
 3. **Adjust VM settings**, such as CPU, memory, disk, and network.
@@ -371,6 +415,7 @@ This section provides step-by-step instructions for setting up virtual machines 
 ---
 
 ### Windows 10 Pro 22H2 x64
+
 - **Download**: [Windows 10 ISO](https://www.microsoft.com/cs-cz/software-download/windows10)
 - **ISO**: `Win10_22H2_Czech_x64.iso`
 - **VM Config**:
@@ -403,6 +448,7 @@ This section provides step-by-step instructions for setting up virtual machines 
    ```
 
 #### Step 1: Install Windows
+
 1. Boot from the Windows 10 ISO and proceed with the installation.
 2. During installation, attach the **VirtIO drivers ISO**:
    [VirtIO Drivers](https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/archive-virtio/virtio-win-0.1.266-1/virtio-win-0.1.266.iso)
@@ -410,6 +456,7 @@ This section provides step-by-step instructions for setting up virtual machines 
 4. Complete the installation and reboot.
 
 #### Step 2: Install QEMU Guest Agent
+
 1. Mount the **VirtIO ISO** inside Windows.
 2. Install the **QEMU Guest Agent**:
    ```sh
@@ -418,6 +465,7 @@ This section provides step-by-step instructions for setting up virtual machines 
 3. Open `services.msc` and ensure that **QEMU Guest Agent** is running.
 
 #### Step 3: Install VirtIO Drivers
+
 1. Install the following drivers from the VirtIO ISO:
    ```sh
    virtio-win-gt-x64.msi
@@ -426,11 +474,13 @@ This section provides step-by-step instructions for setting up virtual machines 
 2. Reboot the system.
 
 #### Step 4: Install Spice Guest Tools
+
 1. Download and install **Spice Guest Tools**:
    [Spice Guest Tools](https://www.spice-space.org/download/windows/spice-guest-tools/spice-guest-tools-latest.exe)
 2. Reboot the system.
 
 #### Step 5: Enable Automatic Login
+
 1. Open **Settings → Accounts → Sign-in options**.
 2. Disable **Require Windows Hello sign-in for Microsoft accounts**.
 3. Run `control userpasswords2` and uncheck **Users must enter a username and password to use this computer**.
@@ -440,6 +490,7 @@ This section provides step-by-step instructions for setting up virtual machines 
 ---
 
 ### Ubuntu Desktop 24.04.2 LTS x64
+
 - **Download**: [Ubuntu Desktop](https://ubuntu.com/download/desktop)
 - **ISO**: `ubuntu-24.04.2-desktop-amd64.iso`
 - **VM Config**:
@@ -479,6 +530,7 @@ This section provides step-by-step instructions for setting up virtual machines 
 ---
 
 ### Kubuntu Desktop 24.04.2 LTS x64
+
 - **Download**: [Kubuntu](https://kubuntu.org/getkubuntu)
 - **ISO**: `kubuntu-24.04.2-desktop-amd64.iso`
 - **VM Config**:
@@ -517,6 +569,7 @@ This section provides step-by-step instructions for setting up virtual machines 
 ---
 
 ### Xubuntu Desktop 24.04.2 LTS x64
+
 - **Download**: [Xubuntu](https://xubuntu.org/download)
 - **ISO**: `xubuntu-24.04.2-desktop-amd64.iso`
 - **VM Config**:
@@ -555,6 +608,7 @@ This section provides step-by-step instructions for setting up virtual machines 
 ---
 
 ### Lubuntu Desktop 24.04.2 LTS x64
+
 - **Download**: [Lubuntu](https://lubuntu.me/downloads)
 - **ISO**: `lubuntu-24.04.2-desktop-amd64.iso`
 - **VM Config**:
@@ -593,6 +647,7 @@ This section provides step-by-step instructions for setting up virtual machines 
 ---
 
 ### openSUSE Tumbleweed x64
+
 - **Download**: [openSUSE Tumbleweed](https://download.opensuse.org/tumbleweed/iso/openSUSE-Tumbleweed-DVD-x86_64-Current.iso)
 - **ISO**: `openSUSE-Tumbleweed-DVD-x86_64-Current.iso`
 - **VM Config**:
@@ -634,6 +689,7 @@ This section provides step-by-step instructions for setting up virtual machines 
 ---
 
 ### Fedora Workstation 41 x64
+
 - **Download**: [Fedora Workstation](https://fedoraproject.org/workstation/download)
 - **ISO**: `Fedora-Workstation-Live-x86_64-41-1.4.iso`
 - **VM Config**:
@@ -673,6 +729,7 @@ This section provides step-by-step instructions for setting up virtual machines 
 ---
 
 ### Debian 12.9 x64
+
 - **Download**: [Debian](https://www.debian.org)
 - **ISO**: `debian-12.9.0-amd64-DVD-1.iso`
 - **VM Config**:
@@ -711,6 +768,7 @@ This section provides step-by-step instructions for setting up virtual machines 
 ---
 
 ### Linux Mint Cinnamon 22.1 x64
+
 - **Download**: [Linux Mint](https://www.linuxmint.com/download.php)
 - **ISO**: `linuxmint-22.1-cinnamon-64bit.iso`
 - **VM Config**:
@@ -749,6 +807,7 @@ This section provides step-by-step instructions for setting up virtual machines 
 ---
 
 ### Rocky Linux 9.5 x64
+
 - **Download**: [Rocky Linux](https://rockylinux.org)
 - **ISO**: `Rocky-9.5-x86_64-dvd.iso`
 - **VM Config**:
@@ -787,12 +846,14 @@ This section provides step-by-step instructions for setting up virtual machines 
 
 ---
 
-## <a id="configuring-powershell-on-windows"></a> Configuring PowerShell on Windows 10/11
+## Configuring PowerShell on Windows 10/11
+
 The PowerShell installation can be downloaded here: [https://github.com/PowerShell/PowerShell/releases](https://github.com/PowerShell/PowerShell/releases)
 
 By default, Windows restricts running PowerShell scripts (.ps1) for security reasons.
 
 ### Enable PowerShell Script Execution
+
 1. Open PowerShell as Administrator:
    - Click on the Start menu, type "PowerShell," and right-click on "Windows PowerShell."
    - Select "Run as administrator."
@@ -811,10 +872,12 @@ By default, Windows restricts running PowerShell scripts (.ps1) for security rea
    ```
    - If prompted, confirm and press Enter.
 
-## <a id="configuring-ssh-key-based-authentication"></a> Configuring SSH Key-Based Authentication
+## Configuring SSH Key-Based Authentication
+
 To securely connect to remote build machines without a password, follow these steps to generate an **Ed25519 SSH key** and configure authentication.
 
 ### Step 1: Generate an SSH Key (On the Machine Running `farm.sh`)
+
 Run the following command in the same machine where `farm.sh` is executed:
 ```sh
 ssh-keygen -t ed25519 -C "build-farm-key" -f ~/.ssh/id_ed25519
@@ -831,6 +894,7 @@ cat ~/.ssh/id_ed25519.pub
 ### Configuring SSH for Linux Build Targets
 
 ### Step 2: Connect to the Target Machine Using a Password
+
 Manually connect to each target host to ensure connectivity:
 ```sh
 ssh builduser@192.168.1.20
@@ -838,9 +902,11 @@ ssh builduser@192.168.1.20
 If prompted, type **yes** to add the host to `known_hosts`.
 
 ### Step 3: Add the Public Key to the Target Machine (Two Methods)
+
 There are two ways to add the public key to the remote machine:
 
 **Method 1: Manual Editing**
+
 Once connected, edit the `authorized_keys` file:
 ```sh
 nano ~/.ssh/authorized_keys
@@ -848,6 +914,7 @@ nano ~/.ssh/authorized_keys
 Copy and paste the public key (`id_ed25519.pub`) into `~/.ssh/authorized_keys`, save, and exit.
 
 **Method 2: Automatic Setup Using `ssh-copy-id`**
+
 Alternatively, you can use the following command from the machine running `farm.sh` to copy the public key automatically:
 ```sh
 ssh-copy-id -i ~/.ssh/id_ed25519.pub builduser@192.168.1.20
@@ -855,6 +922,7 @@ ssh-copy-id -i ~/.ssh/id_ed25519.pub builduser@192.168.1.20
 This will add the key to the `~/.ssh/authorized_keys` file without manual editing.
 
 ### Step 4: Set Correct Permissions
+
 On the remote machine, ensure SSH permissions are correct:
 ```sh
 chmod 600 ~/.ssh/authorized_keys
@@ -862,6 +930,7 @@ chmod 700 ~/.ssh
 ```
 
 ### Step 5: Test SSH Key Authentication
+
 Now, try logging in again from your local machine:
 ```sh
 ssh builduser@192.168.1.20
@@ -869,14 +938,17 @@ ssh builduser@192.168.1.20
 If the setup was successful, you should be able to connect without a password.
 
 ### Configuring SSH for Windows Build Targets
+
 If the target machine is running **Windows 10 or 11**, you need to install OpenSSH first.
 
 ### Step 2: Install OpenSSH
+
 1. Download OpenSSH for Windows from:
    [https://github.com/PowerShell/Win32-OpenSSH/releases](https://github.com/PowerShell/Win32-OpenSSH/releases)
 2. Install `OpenSSH-Win64-v9.5.0.0.msi` by following the setup instructions.
 
 ### Step 3: Modify SSH Configuration
+
 1. Download and install **Notepad++** (if not already installed):
    [https://notepad-plus-plus.org/downloads/](https://notepad-plus-plus.org/downloads/)
 2. Open `C:\ProgramData\ssh\sshd_config` in Notepad++ as Administrator.
@@ -891,6 +963,7 @@ If the target machine is running **Windows 10 or 11**, you need to install OpenS
    ```
 
 ### Step 4: Add Public Key to Windows Authorized Keys
+
 1. Create an SSH directory for the user (if it doesn’t exist):
    ```sh
    mkdir C:\Users\<user>\.ssh
@@ -901,6 +974,7 @@ If the target machine is running **Windows 10 or 11**, you need to install OpenS
    ```
 
 ### Step 5: Test SSH Key Authentication
+
 Now, try logging in from your Linux machine (or WSL Ubuntu):
 ```sh
 ssh marel@192.168.88.10
@@ -909,10 +983,12 @@ If the setup was successful, you should be able to connect without a password.
 
 Repeat these steps for each target machine in `hosts.cfg` and `vms.cfg`.
 
-## <a id="configuring-passwordless-sudo-for-linux-stations"></a> Configuring Passwordless Sudo for Linux Stations
+## Configuring Passwordless Sudo for Linux Stations
+
 On Linux build stations, `sudo` must be configured to allow passwordless execution of required commands.
 
 #### Debian, Ubuntu, and derivatives:
+
 1. Open the sudoers file using `visudo`:
    ```sh
    sudo EDITOR=nano visudo
@@ -930,6 +1006,7 @@ On Linux build stations, `sudo` must be configured to allow passwordless executi
    If the user is in sudo, its group permissions may override individual passwordless sudo settings. Removing the user ensures that passwordless sudo works as expected based on user-specific configurations.
 
 #### Fedora, Rocky Linux, and openSUSE:
+
 1. Open the sudoers file using `visudo`:
    ```sh
    sudo EDITOR=nano visudo
@@ -947,6 +1024,7 @@ On Linux build stations, `sudo` must be configured to allow passwordless executi
    If the user is in wheel, its group permissions may override individual passwordless sudo settings. Removing the user ensures that passwordless sudo works as expected based on user-specific configurations.
 
 ### Apply Changes
+
 To ensure the changes take effect, restart the VM:
 ```sh
 sudo reboot
@@ -954,7 +1032,7 @@ sudo reboot
 
 After these steps, the build user will be able to execute commands with `sudo` without being prompted for a password.
 
-## <a id="configuring-gpg-signing"></a> Configuring RPM Signing (GPG)
+## Configuring RPM Signing (GPG)
 
 For automatic RPM package signing during the **5) Download** step, the GPG environment must be properly configured on the local machine (the machine running `farm.sh`).
 
@@ -1009,7 +1087,7 @@ Verify that the `gpg_key_id` variable in the `config/global.cfg` file contains t
 gpg_key_id="9E736AF1D162F3F6FF21E3659A1A41C5DDF5A11A"
 ```
 
-## <a id="license"></a> License
+## License
 
 This project is licensed under the [Apache License 2.0](LICENSE).
 
