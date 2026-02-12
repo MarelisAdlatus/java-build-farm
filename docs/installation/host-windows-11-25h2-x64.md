@@ -114,14 +114,65 @@ net user Worker /add /expires:never
 net localgroup Administrators Worker /add
 ```
 
-Set password manually:
+Set the password **manually** (required — profile is not created until first credentialed logon):
 
 ```text
 WIN + R → lusrmgr.msc
 ```
 
 - set password
-- password never expires
+- optionally set *Password never expires* (operational account)
+- close the dialog
+
+Verify account state:
+
+```powershell
+Get-LocalUser Worker | fl Name,Enabled,PasswordRequired,PasswordLastSet
+```
+
+Expected example:
+
+```text
+Name             : Worker
+Enabled          : True
+PasswordRequired : True
+PasswordLastSet  : <timestamp>
+```
+
+### 4.1 Force Creation of the User Profile Directory
+
+Windows does **not create** `C:\Users\Worker` until the first logon with a loaded profile.
+Because this account must never log in interactively, the profile must be initialized programmatically.
+
+Run a one-time credentialed process to force profile materialization:
+
+```powershell
+$u="$env:COMPUTERNAME\Worker"
+$p=Read-Host "Password" -AsSecureString
+$c=New-Object PSCredential($u,$p)
+Start-Process -FilePath "cmd.exe" -ArgumentList "/c exit" `
+  -Credential $c -LoadUserProfile -Wait
+```
+
+This performs a non-interactive logon and immediately exits, but causes Windows to:
+
+- create `C:\Users\Worker`
+- generate the registry profile mapping
+- establish the SID ↔ profile linkage required by OpenSSH
+
+Verify profile existence:
+
+```powershell
+Test-Path "C:\Users\Worker"
+```
+
+Expected:
+
+```text
+True
+```
+
+Only after this step is it safe to continue with `.ssh` creation and ACL configuration.
 
 ## 5. Determine User Home Directory
 
@@ -135,7 +186,7 @@ Get-ItemProperty `
 Expected result:
 
 ```powershell
-C:\Users\worker.<HOSTNAME>
+C:\Users\Worker
 ```
 
 ## 6. Configure SSH Keys
@@ -143,9 +194,9 @@ C:\Users\worker.<HOSTNAME>
 ### 6.1 Create `.ssh` structure
 
 ```powershell
-New-Item -ItemType Directory -Force C:\Users\worker.<HOSTNAME>\.ssh | Out-Null
-echo "" > C:\Users\worker.<HOSTNAME>\.ssh\authorized_keys
-notepad C:\Users\worker.<HOSTNAME>\.ssh\authorized_keys
+New-Item -ItemType Directory -Force C:\Users\Worker\.ssh | Out-Null
+echo "" > C:\Users\Worker\.ssh\authorized_keys
+notepad C:\Users\Worker\.ssh\authorized_keys
 ```
 
 Insert public keys:
@@ -160,12 +211,12 @@ ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINuEMOpt2H3hDrkkuzn8rPP4IY2BNNr+eOhyNp7yr+Al
 Incorrect permissions **will break SSH login**.
 
 ```powershell
-icacls C:\Users\worker.<HOSTNAME>\.ssh /inheritance:r
-icacls C:\Users\worker.<HOSTNAME>\.ssh `
+icacls C:\Users\Worker\.ssh /inheritance:r
+icacls C:\Users\Worker\.ssh `
   /grant "Worker:(OI)(CI)F" "SYSTEM:(OI)(CI)F" "Administrators:(OI)(CI)F"
 
-icacls C:\Users\worker.<HOSTNAME>\.ssh\authorized_keys /inheritance:r
-icacls C:\Users\worker.<HOSTNAME>\.ssh\authorized_keys `
+icacls C:\Users\Worker\.ssh\authorized_keys /inheritance:r
+icacls C:\Users\Worker\.ssh\authorized_keys `
   /grant "Worker:F" "SYSTEM:F" "Administrators:F"
 ```
 
@@ -188,7 +239,7 @@ Expected login:
 ```text
 Microsoft Windows [Version 11.0.xxxxx]
 
-worker@<HOSTNAME> C:\Users\worker.<HOSTNAME>> whoami
+worker@<HOSTNAME> C:\Users\Worker> whoami
 <hostname>\worker
 ```
 
