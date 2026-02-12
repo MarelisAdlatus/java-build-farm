@@ -1,4 +1,3 @@
-
 # Supported Linux Platforms & Validation Matrix
 
 ## Table of Contents

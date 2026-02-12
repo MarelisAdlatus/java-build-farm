@@ -255,39 +255,82 @@ Connection closed.
 The `Worker` account is intended **only for remote administration via SSH**.
 All other interactive logon methods (console, RDP, local GUI login) are explicitly disabled.
 
-This is enforced at the **local security policy level**, not by SSH itself.
+This restriction is enforced at the **Local Security Policy level**, not by SSH itself.
 
-### Deny Local and Remote Interactive Logon
+> ⚠️ On modern Windows versions (Windows 11 and hardened Windows 10 builds),
+> user rights must be assigned using the **SID**, not the account name.
+
+### 1) Obtain the SID of the Worker Account
+
+```powershell
+(Get-LocalUser Worker).SID.Value
+```
+
+Example result:
+
+```text
+S-1-5-21-1838155332-2738559885-318569030-1002
+```
+
+### 2) Export Current Security Policy
 
 ```powershell
 secedit /export /cfg C:\Windows\Temp\secpol.cfg
 notepad C:\Windows\Temp\secpol.cfg
 ```
 
-Add or verify:
+### 3) Add (or Modify) These Entries Using the SID
+
+> The `*` prefix is required by the INF security template format.
 
 ```ini
-SeDenyInteractiveLogonRight = Worker
-SeDenyRemoteInteractiveLogonRight = Worker
+SeDenyInteractiveLogonRight = *S-1-5-21-1838155332-2738559885-318569030-1002
+SeDenyRemoteInteractiveLogonRight = *S-1-5-21-1838155332-2738559885-318569030-1002
 ```
 
-Apply policy:
+Do **not** use:
+
+```text
+Worker
+.\Worker
+COMPUTERNAME\Worker
+```
+
+Only the SID is reliable across Windows versions.
+
+### 4) Save File with Correct Encoding
+
+When saving in Notepad:
+
+```text
+Encoding: Unicode
+```
+
+(Security templates must remain UTF-16 LE. UTF-8 will cause `secedit` failure.)
+
+### 5) Apply the Policy
+
+Use the existing local security database:
 
 ```powershell
-secedit /configure /db secedit.sdb /cfg C:\Windows\Temp\secpol.cfg /areas USER_RIGHTS
+secedit /configure /db C:\Windows\Security\Database\local.sdb /cfg C:\Windows\Temp\secpol.cfg /areas USER_RIGHTS
 ```
 
-Reboot is recommended.
+### 6) Reboot (Recommended)
+
+```powershell
+shutdown /r /t 0
+```
 
 ### Resulting Access Model
 
-| Access method            | Worker    |
-| ------------------------ | --------- |
-| SSH (OpenSSH)            | ✅ Allowed|
-| Local console login      | ❌ Denied |
-| RDP                      | ❌ Denied |
-| GUI login                | ❌ Denied |
-| Service / scheduled task | ✅ Allowed|
+| Access method            | Worker     |
+| ------------------------ | ---------- |
+| SSH (OpenSSH)            | ✅ Allowed |
+| Local console login      | ❌ Denied  |
+| RDP                      | ❌ Denied  |
+| GUI login                | ❌ Denied  |
+| Service / scheduled task | ✅ Allowed |
 
 ## Result
 
