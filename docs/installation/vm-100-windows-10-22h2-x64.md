@@ -314,74 +314,89 @@ Connection closed.
 ## Restrict User Login to SSH Only (Disable Interactive Logon)
 
 The `Worker` account is intended **only for remote administration via SSH**.
-All other interactive logon methods (console, RDP, local GUI login) are explicitly disabled.
+All other interactive logon methods (console, RDP, local GUI login) are explicitly denied.
 
-This restriction is enforced at the **Local Security Policy level**, not by SSH itself.
+This restriction is enforced by **Local Security Policy (User Rights Assignment)**, not by SSH itself.
 
-> ⚠️ On modern Windows versions (Windows 11 and hardened Windows 10 builds),
-> user rights must be assigned using the **SID**, not the account name.
+> On Windows 11 (and hardened Windows 10 builds), these rights must be assigned using the **account SID**.
+> Name-based assignment is unreliable and may fail with *“No mapping between account names and security IDs”*.
 
-### 1) Obtain the SID of the Worker Account
+### Step 1 - Obtain the SID of the `Worker` Account
+
+Run:
 
 ```powershell
 (Get-LocalUser Worker).SID.Value
 ```
 
-Example result:
+Example:
 
-```text
+```powershell
 S-1-5-21-1838155332-2738559885-318569030-1002
 ```
 
-### 2) Export Current Security Policy
+### Step 2 - Export the Current Security Policy
 
 ```powershell
 secedit /export /cfg C:\Windows\Temp\secpol.cfg
+```
+
+Then open the file for editing:
+
+```powershell
 notepad C:\Windows\Temp\secpol.cfg
 ```
 
-### 3) Add (or Modify) These Entries Using the SID
+### Step 3 - Add the Deny Logon Rights Using the SID
 
-> The `*` prefix is required by the INF security template format.
+Insert or modify the following lines (use your actual SID):
 
 ```ini
 SeDenyInteractiveLogonRight = *S-1-5-21-1838155332-2738559885-318569030-1002
 SeDenyRemoteInteractiveLogonRight = *S-1-5-21-1838155332-2738559885-318569030-1002
 ```
 
-Do **not** use:
+Important notes:
 
-```text
-Worker
-.\Worker
-COMPUTERNAME\Worker
-```
+- The `*` prefix **is required** by the security template format.
+- Do **not** use:
+  - `Worker`
+  - `.\Worker`
+  - `COMPUTERNAME\Worker`
+- Although later exports may display `Worker`, Windows internally stores only the SID.
 
-Only the SID is reliable across Windows versions.
+### Step 4 - Save With Correct Encoding
 
-### 4) Save File with Correct Encoding
+Security templates must remain **UTF-16 LE**.
+Saving as UTF-8 will cause `secedit` import errors.
 
-When saving in Notepad:
+### Step 5 - Apply the Modified Policy
 
-```text
-Encoding: Unicode
-```
-
-(Security templates must remain UTF-16 LE. UTF-8 will cause `secedit` failure.)
-
-### 5) Apply the Policy
-
-Use the existing local security database:
+Always apply to the existing local security database:
 
 ```powershell
-secedit /configure /db C:\Windows\Security\Database\local.sdb /cfg C:\Windows\Temp\secpol.cfg /areas USER_RIGHTS
+secedit /configure ^
+ /db C:\Windows\Security\Database\local.sdb ^
+ /cfg C:\Windows\Temp\secpol.cfg ^
+ /areas USER_RIGHTS
 ```
 
-### 6) Reboot (Recommended)
+### Step 6 - Reboot (Recommended)
 
 ```powershell
 shutdown /r /t 0
 ```
+
+### Verification (Optional)
+
+Re-export to confirm the assignment:
+
+```powershell
+secedit /export /cfg C:\Windows\Temp\check.cfg
+```
+
+You may now see `Worker` instead of the SID - this is normal.
+Windows resolves the SID back to a readable name during export.
 
 ### Resulting Access Model
 
