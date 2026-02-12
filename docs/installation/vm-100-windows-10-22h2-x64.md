@@ -12,23 +12,23 @@ The goal is:
 
 ## Contents
 
-1. [VM Overview](#vm-overview)
-2. [VM Classification and Management Scope](#vm-classification-and-management-scope)
-3. [Proxmox VM Reference Configuration](#1-proxmox-vm-reference-configuration)
-4. [Install Required Drivers and Tools](#2-install-required-drivers-and-tools)
-   - [VirtIO Drivers](#21-virtio-drivers)
-   - [Install PowerShell 7](#22-install-powershell-7)
-5. [Install OpenSSH Server](#3-install-openssh-server)
-6. [Enable and Configure SSH Service](#4-enable-and-configure-ssh-service)
-   - [Enable service](#41-enable-service)
-   - [Configure sshd_config](#42-configure-sshd_config)
-7. [Create Local User for SSH Access](#5-create-local-user-for-ssh-access)
-8. [Determine User Home Directory](#6-determine-user-home-directory)
-9. [Configure SSH Keys](#7-configure-ssh-keys)
-10. [Set Correct ACLs](#8-critical-set-correct-acls-windows-openssh-requirement)
-11. [Test Connection](#9-test-connection)
-12. [Restrict User Login to SSH Only](#10-restrict-user-login-to-ssh-only-disable-interactive-logon)
-13. [Result](#result)
+- [VM Overview](#vm-overview)
+- [VM Classification and Management Scope](#vm-classification-and-management-scope)
+- [Proxmox VM Reference Configuration](#proxmox-vm-reference-configuration)
+- [Install Required Drivers and Tools](#install-required-drivers-and-tools)
+  - [VirtIO Drivers](#virtio-drivers)
+  - [Install PowerShell 7](#install-powershell-7)
+- [Install OpenSSH Server](#install-openssh-server)
+- [Enable and Configure SSH Service](#enable-and-configure-ssh-service)
+  - [Enable service](#enable-service)
+  - [Configure sshd_config](#configure-sshd_config)
+- [Create Local User for SSH Access](#create-local-user-for-ssh-access)
+- [Determine User Home Directory](#determine-user-home-directory)
+- [Configure SSH Keys](#configure-ssh-keys)
+- [Set Correct ACLs](#critical-set-correct-acls-windows-openssh-requirement)
+- [Test Connection](#test-connection)
+- [Restrict User Login to SSH Only](#restrict-user-login-to-ssh-only-disable-interactive-logon)
+- [Result](#result)
 
 ## VM Overview
 
@@ -55,7 +55,7 @@ This classification distinguishes the system from physical or host-level
 machines listed under `hosts.cfg`, which are **not** managed by Proxmox
 and follow a different persistence and trust model.
 
-## 1. Proxmox VM Reference Configuration
+## Proxmox VM Reference Configuration
 
 > This is a reference snapshot of the VM configuration used for this node.  
 > It is **not required** for daily operation, but useful for auditing, cloning, or rebuilding the farm.
@@ -83,9 +83,9 @@ tpmstate0: local-lvm:vm-100-disk-2,size=4M,version=v2.0
 vga: qxl
 ```
 
-## 2. Install Required Drivers and Tools
+## Install Required Drivers and Tools
 
-### 2.1 VirtIO Drivers
+### VirtIO Drivers
 
 Mount and install drivers from:
 
@@ -100,7 +100,7 @@ Install:
 - balloon
 - guest agent
 
-### 2.2 Install PowerShell 7
+### Install PowerShell 7
 
 Download and install:
 
@@ -110,7 +110,7 @@ PowerShell-7.5.4-win-x64.msi
 
 Run **PowerShell as Administrator**.
 
-## 3. Install OpenSSH Server
+## Install OpenSSH Server
 
 ```powershell
 Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
@@ -129,16 +129,16 @@ OpenSSH.Client  Installed
 OpenSSH.Server  Installed
 ```
 
-## 4. Enable and Configure SSH Service
+## Enable and Configure SSH Service
 
-### 4.1 Enable service
+### Enable service
 
 ```powershell
 Set-Service sshd -StartupType Automatic
 Start-Service sshd
 ```
 
-### 4.2 Configure `sshd_config`
+### Configure `sshd_config`
 
 Open configuration file:
 
@@ -166,7 +166,7 @@ Restart service:
 Restart-Service sshd
 ```
 
-## 5. Create Local User for SSH Access
+## Create Local User for SSH Access
 
 Create a dedicated automation / administration user:
 
@@ -200,7 +200,7 @@ PasswordRequired : True
 PasswordLastSet  : <timestamp>
 ```
 
-### 5.1 Force Creation of the User Profile Directory
+### Force Creation of the User Profile Directory
 
 Windows does **not create** `C:\Users\Worker` until the first logon with a loaded profile.
 Because this account must never log in interactively, the profile must be initialized programmatically.
@@ -235,7 +235,7 @@ True
 
 Only after this step is it safe to continue with `.ssh` creation and ACL configuration.
 
-## 6. Determine User Home Directory
+## Determine User Home Directory
 
 ```powershell
 $sid = (Get-LocalUser Worker).SID.Value
@@ -250,9 +250,9 @@ Expected result:
 C:\Users\Worker
 ```
 
-## 7. Configure SSH Keys
+## Configure SSH Keys
 
-### 7.1 Create `.ssh` structure
+### Create `.ssh` structure
 
 ```powershell
 New-Item -ItemType Directory -Force C:\Users\Worker\.ssh | Out-Null
@@ -267,7 +267,7 @@ ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBH9oiMFtQIMn9n6ljjiu+i9c2Z9qi7VnfXTlApTpe2e
 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINuEMOpt2H3hDrkkuzn8rPP4IY2BNNr+eOhyNp7yr+Al marelis@NTB-MARELIS
 ```
 
-## 8. Critical: Set Correct ACLs (Windows OpenSSH Requirement)
+## Critical: Set Correct ACLs (Windows OpenSSH Requirement)
 
 Incorrect permissions **will break SSH login**.
 
@@ -287,7 +287,7 @@ Restart SSH service:
 Restart-Service sshd
 ```
 
-## 9. Test Connection
+## Test Connection
 
 From a Linux or WSL host:
 
@@ -311,14 +311,14 @@ exit
 Connection closed.
 ```
 
-## 10. Restrict User Login to SSH Only (Disable Interactive Logon)
+## Restrict User Login to SSH Only (Disable Interactive Logon)
 
 The `Worker` account is intended **only for remote administration via SSH**.
 All other interactive logon methods (console, RDP, local GUI login) are explicitly disabled.
 
 This is enforced at the **local security policy level**, not by SSH itself.
 
-### 10.1 Deny Local and Remote Interactive Logon
+### Deny Local and Remote Interactive Logon
 
 ```powershell
 secedit /export /cfg C:\Windows\Temp\secpol.cfg
@@ -340,15 +340,15 @@ secedit /configure /db secedit.sdb /cfg C:\Windows\Temp\secpol.cfg /areas USER_R
 
 Reboot is recommended but not strictly required.
 
-### 10.2 Resulting Access Model
+### Resulting Access Model
 
 | Access method            | Worker    |
 | ------------------------ | --------- |
-| SSH (OpenSSH)            | ✅ Allowed |
-| Local console login      | ❌ Denied  |
-| RDP                      | ❌ Denied  |
-| GUI login                | ❌ Denied  |
-| Service / scheduled task | ✅ Allowed |
+| SSH (OpenSSH)            | ✅ Allowed|
+| Local console login      | ❌ Denied |
+| RDP                      | ❌ Denied |
+| GUI login                | ❌ Denied |
+| Service / scheduled task | ✅ Allowed|
 
 ## Result
 

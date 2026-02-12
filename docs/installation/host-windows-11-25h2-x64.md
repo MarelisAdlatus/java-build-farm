@@ -14,20 +14,20 @@ The goal is:
 
 ## Contents
 
-1. [Host Overview](#host-overview)
-2. [Install Required Tools](#1-install-required-tools)
-   - [Install PowerShell 7](#11-install-powershell-7)
-3. [Install OpenSSH Server](#2-install-openssh-server)
-4. [Enable and Configure SSH Service](#3-enable-and-configure-ssh-service)
-   - [Enable service](#31-enable-service)
-   - [Configure sshd_config](#32-configure-sshd_config)
-5. [Create Local User for SSH Access](#4-create-local-user-for-ssh-access)
-6. [Determine User Home Directory](#5-determine-user-home-directory)
-7. [Configure SSH Keys](#6-configure-ssh-keys)
-8. [Set Correct ACLs](#7-critical-set-correct-acls-windows-openssh-requirement)
-9. [Test Connection](#8-test-connection)
-10. [Restrict User Login to SSH Only](#9-restrict-user-login-to-ssh-only-disable-interactive-logon)
-11. [Result](#result)
+- [Host Overview](#host-overview)
+- [Install Required Tools](#install-required-tools)
+  - [Install PowerShell 7](#install-powershell-7)
+- [Install OpenSSH Server](#install-openssh-server)
+- [Enable and Configure SSH Service](#enable-and-configure-ssh-service)
+  - [Enable service](#enable-service)
+  - [Configure sshd_config](#configure-sshd_config)
+- [Create Local User for SSH Access](#create-local-user-for-ssh-access)
+- [Determine User Home Directory](#determine-user-home-directory)
+- [Configure SSH Keys](#configure-ssh-keys)
+- [Set Correct ACLs](#critical-set-correct-acls-windows-openssh-requirement)
+- [Test Connection](#test-connection)
+- [Restrict User Login to SSH Only](#restrict-user-login-to-ssh-only-disable-interactive-logon)
+- [Result](#result)
 
 ## Host Overview
 
@@ -37,9 +37,9 @@ The goal is:
 - **Access model:** SSH-only administration
 - **Purpose:** Infrastructure host / automation / management node
 
-## 1. Install Required Tools
+## Install Required Tools
 
-### 1.1 Install PowerShell 7
+### Install PowerShell 7
 
 Download and install:
 
@@ -49,7 +49,7 @@ PowerShell-7.5.4-win-x64.msi
 
 Run **PowerShell as Administrator** for all following steps.
 
-## 2. Install OpenSSH Server
+## Install OpenSSH Server
 
 ```powershell
 Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
@@ -68,16 +68,16 @@ OpenSSH.Client  Installed
 OpenSSH.Server  Installed
 ```
 
-## 3. Enable and Configure SSH Service
+## Enable and Configure SSH Service
 
-### 3.1 Enable service
+### Enable service
 
 ```powershell
 Set-Service sshd -StartupType Automatic
 Start-Service sshd
 ```
 
-### 3.2 Configure `sshd_config`
+### Configure `sshd_config`
 
 Open configuration file:
 
@@ -105,7 +105,7 @@ Restart service:
 Restart-Service sshd
 ```
 
-## 4. Create Local User for SSH Access
+## Create Local User for SSH Access
 
 Create a dedicated automation / administration user:
 
@@ -139,7 +139,7 @@ PasswordRequired : True
 PasswordLastSet  : <timestamp>
 ```
 
-### 4.1 Force Creation of the User Profile Directory
+### Force Creation of the User Profile Directory
 
 Windows does **not create** `C:\Users\Worker` until the first logon with a loaded profile.
 Because this account must never log in interactively, the profile must be initialized programmatically.
@@ -174,7 +174,7 @@ True
 
 Only after this step is it safe to continue with `.ssh` creation and ACL configuration.
 
-## 5. Determine User Home Directory
+## Determine User Home Directory
 
 ```powershell
 $sid = (Get-LocalUser Worker).SID.Value
@@ -189,9 +189,9 @@ Expected result:
 C:\Users\Worker
 ```
 
-## 6. Configure SSH Keys
+## Configure SSH Keys
 
-### 6.1 Create `.ssh` structure
+### Create `.ssh` structure
 
 ```powershell
 New-Item -ItemType Directory -Force C:\Users\Worker\.ssh | Out-Null
@@ -206,7 +206,7 @@ ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBH9oiMFtQIMn9n6ljjiu+i9c2Z9qi7VnfXTlApTpe2e
 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINuEMOpt2H3hDrkkuzn8rPP4IY2BNNr+eOhyNp7yr+Al marelis@NTB-MARELIS
 ```
 
-## 7. Critical: Set Correct ACLs (Windows OpenSSH Requirement)
+## Critical: Set Correct ACLs (Windows OpenSSH Requirement)
 
 Incorrect permissions **will break SSH login**.
 
@@ -226,7 +226,7 @@ Restart SSH service:
 Restart-Service sshd
 ```
 
-## 8. Test Connection
+## Test Connection
 
 From a Linux or WSL host:
 
@@ -250,14 +250,14 @@ exit
 Connection closed.
 ```
 
-## 9. Restrict User Login to SSH Only (Disable Interactive Logon)
+## Restrict User Login to SSH Only (Disable Interactive Logon)
 
 The `Worker` account is intended **only for remote administration via SSH**.
 All other interactive logon methods (console, RDP, local GUI login) are explicitly disabled.
 
 This is enforced at the **local security policy level**, not by SSH itself.
 
-### 9.1 Deny Local and Remote Interactive Logon
+### Deny Local and Remote Interactive Logon
 
 ```powershell
 secedit /export /cfg C:\Windows\Temp\secpol.cfg
@@ -279,15 +279,15 @@ secedit /configure /db secedit.sdb /cfg C:\Windows\Temp\secpol.cfg /areas USER_R
 
 Reboot is recommended.
 
-### 9.2 Resulting Access Model
+### Resulting Access Model
 
 | Access method            | Worker    |
 | ------------------------ | --------- |
-| SSH (OpenSSH)            | ✅ Allowed |
-| Local console login      | ❌ Denied  |
-| RDP                      | ❌ Denied  |
-| GUI login                | ❌ Denied  |
-| Service / scheduled task | ✅ Allowed |
+| SSH (OpenSSH)            | ✅ Allowed|
+| Local console login      | ❌ Denied |
+| RDP                      | ❌ Denied |
+| GUI login                | ❌ Denied |
+| Service / scheduled task | ✅ Allowed|
 
 ## Result
 

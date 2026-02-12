@@ -15,16 +15,16 @@ The goal is:
 
 ## Contents
 
-1. [VM Overview](#vm-overview)
-2. [VM Classification and Management Scope](#vm-classification-and-management-scope)
-3. [Proxmox VM Reference Configuration](#1-proxmox-vm-reference-configuration)
-4. [Prepare APT Sources](#2-prepare-apt-sources)
-5. [Initial System Update](#3-initial-system-update)
-6. [Install Required Packages](#4-install-required-packages)
-7. [Configure Passwordless Sudo](#5-configure-passwordless-sudo)
-8. [Configure SSH Access](#6-configure-ssh-access)
-9. [Test Connection](#7-test-connection)
-10. [Result](#result)
+- [VM Overview](#vm-overview)
+- [VM Classification and Management Scope](#vm-classification-and-management-scope)
+- [Proxmox VM Reference Configuration](#proxmox-vm-reference-configuration)
+- [Prepare APT Sources](#prepare-apt-sources)
+- [Initial System Update](#initial-system-update)
+- [Install Required Packages](#install-required-packages)
+- [Configure Passwordless Sudo](#configure-passwordless-sudo)
+- [Configure SSH Access](#configure-ssh-access)
+- [Test Connection](#test-connection)
+- [Result](#result)
 
 ## VM Overview
 
@@ -51,7 +51,7 @@ Characteristics of `vms.cfg` nodes:
 This classification distinguishes the system from physical or host-level
 machines listed under `hosts.cfg`.
 
-## 1. Proxmox VM Reference Configuration
+## Proxmox VM Reference Configuration
 
 > Configuration snapshot provided for audit and rebuild reference.  
 > Not required for daily operation.
@@ -79,7 +79,7 @@ tpmstate0: ssd-data:102/vm-102-disk-2.qcow2,size=4M,version=v2.0
 vga: qxl
 ```
 
-## 2. Prepare APT Sources
+## Prepare APT Sources
 
 After installation from ISO, the CD-ROM repository entry must be disabled.
 
@@ -101,7 +101,7 @@ Verify the change:
 grep cdrom /etc/apt/sources.list
 ```
 
-## 3. Initial System Update
+## Initial System Update
 
 Update the package index and upgrade installed packages:
 
@@ -110,7 +110,7 @@ sudo apt update
 sudo apt upgrade
 ```
 
-## 4. Install Required Packages
+## Install Required Packages
 
 Install Proxmox integration and SSH server:
 
@@ -131,7 +131,7 @@ Reboot to finalize integration:
 sudo reboot
 ```
 
-## 5. Configure Passwordless Sudo
+## Configure Passwordless Sudo
 
 For automation and administration, the primary user is granted
 **passwordless sudo**.
@@ -151,9 +151,9 @@ marelis ALL=(ALL) NOPASSWD:ALL
 > This rule provides explicit, user-scoped privilege escalation suitable
 > for automation and scripted tasks.
 
-## 6. Configure SSH Access
+## Configure SSH Access
 
-### 6.1 Add Authorized SSH Keys
+### Add Authorized SSH Keys
 
 Edit the authorized keys file:
 
@@ -175,7 +175,7 @@ chmod 700 ~/.ssh
 chmod 600 ~/.ssh/authorized_keys
 ```
 
-## 7. Test Connection
+## Test Connection
 
 From a Linux or WSL host:
 

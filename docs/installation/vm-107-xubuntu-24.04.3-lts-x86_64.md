@@ -15,15 +15,15 @@ The goal is:
 
 ## Contents
 
-1. [VM Overview](#vm-overview)
-2. [VM Classification and Management Scope](#vm-classification-and-management-scope)
-3. [Proxmox VM Reference Configuration](#1-proxmox-vm-reference-configuration)
-4. [Initial System Setup](#2-initial-system-setup)
-5. [Install Required Packages](#3-install-required-packages)
-6. [Configure Passwordless Sudo](#4-configure-passwordless-sudo)
-7. [Configure SSH Access](#5-configure-ssh-access)
-8. [Test Connection](#6-test-connection)
-9. [Result](#result)
+- [VM Overview](#vm-overview)
+- [VM Classification and Management Scope](#vm-classification-and-management-scope)
+- [Proxmox VM Reference Configuration](#proxmox-vm-reference-configuration)
+- [Initial System Setup](#initial-system-setup)
+- [Install Required Packages](#install-required-packages)
+- [Configure Passwordless Sudo](#configure-passwordless-sudo)
+- [Configure SSH Access](#configure-ssh-access)
+- [Test Connection](#test-connection)
+- [Result](#result)
 
 ## VM Overview
 
@@ -52,7 +52,7 @@ Characteristics of `vms.cfg` nodes:
 This classification distinguishes the system from host-level machines
 listed under `hosts.cfg`.
 
-## 1. Proxmox VM Reference Configuration
+## Proxmox VM Reference Configuration
 
 > Configuration snapshot provided for audit and rebuild reference.  
 > It is **not required** for daily operation.
@@ -80,7 +80,7 @@ tpmstate0: ssd-data:107/vm-107-disk-2.qcow2,size=4M,version=v2.0
 vga: qxl
 ```
 
-## 2. Initial System Setup
+## Initial System Setup
 
 Update the system to the latest patch level:
 
@@ -95,7 +95,7 @@ Reboot to ensure kernel and system components are fully applied:
 sudo reboot
 ```
 
-## 3. Install Required Packages
+## Install Required Packages
 
 Install Proxmox integration and SSH server:
 
@@ -116,7 +116,7 @@ Reboot to finalize integration:
 sudo reboot
 ```
 
-## 4. Configure Passwordless Sudo
+## Configure Passwordless Sudo
 
 For automation and administration tasks, configure passwordless sudo
 for the primary user.
@@ -133,7 +133,7 @@ Add the following line:
 marelis ALL=(ALL) NOPASSWD:ALL
 ```
 
-### 4.1 Remove User from `sudo` Group
+### Remove User from `sudo` Group
 
 To avoid conflicts between group-based and user-specific sudo rules,
 remove the user from the `sudo` group:
@@ -144,9 +144,9 @@ sudo deluser marelis sudo
 
 Log out and back in, or reboot if required.
 
-## 5. Configure SSH Access
+## Configure SSH Access
 
-### 5.1 Create SSH Directory and Keys
+### Create SSH Directory and Keys
 
 Ensure the `.ssh` directory exists and has correct permissions:
 
@@ -175,7 +175,7 @@ chmod 700 ~/.ssh
 chmod 600 ~/.ssh/authorized_keys
 ```
 
-## 6. Test Connection
+## Test Connection
 
 From a Linux or WSL host:
 

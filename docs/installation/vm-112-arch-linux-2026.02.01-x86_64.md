@@ -18,20 +18,20 @@ The goal is:
 
 ## Contents
 
-1. [VM Overview](#vm-overview)
-2. [VM Classification and Management Scope](#vm-classification-and-management-scope)
-3. [Secure Boot and EFI Configuration](#secure-boot-and-efi-configuration)
-4. [Pre-Install Notes (Networking)](#pre-install-notes-networking)
-5. [OS Installation (archinstall)](#os-installation-archinstall)
-6. [Post-Install Fixes (NetworkManager, Login Screen Language)](#post-install-fixes-networkmanager-login-screen-language)
-7. [Proxmox VM Reference Configuration](#1-proxmox-vm-reference-configuration)
-8. [System Update and Package Installation](#2-system-update-and-package-installation)
-9. [Enable Services (SSHD, Firewalld)](#3-enable-services-sshd-firewalld)
-10. [Configure Firewall for SSH](#4-configure-firewall-for-ssh)
-11. [Configure Passwordless Sudo](#5-configure-passwordless-sudo)
-12. [Configure SSH Access](#6-configure-ssh-access)
-13. [Test Connection](#7-test-connection)
-14. [Result](#result)
+- [VM Overview](#vm-overview)
+- [VM Classification and Management Scope](#vm-classification-and-management-scope)
+- [Secure Boot and EFI Configuration](#secure-boot-and-efi-configuration)
+- [Pre-Install Notes (Networking)](#pre-install-notes-networking)
+- [OS Installation (archinstall)](#os-installation-archinstall)
+- [Post-Install Fixes (NetworkManager, Login Screen Language)](#post-install-fixes-networkmanager-login-screen-language)
+- [Proxmox VM Reference Configuration](#proxmox-vm-reference-configuration)
+- [System Update and Package Installation](#system-update-and-package-installation)
+- [Enable Services (SSHD, Firewalld)](#enable-services-sshd-firewalld)
+- [Configure Firewall for SSH](#configure-firewall-for-ssh)
+- [Configure Passwordless Sudo](#configure-passwordless-sudo)
+- [Configure SSH Access](#configure-ssh-access)
+- [Test Connection](#test-connection)
+- [Result](#result)
 
 ## VM Overview
 
@@ -135,7 +135,7 @@ Reboot to apply changes:
 sudo reboot
 ```
 
-## 1. Proxmox VM Reference Configuration
+## Proxmox VM Reference Configuration
 
 > Configuration snapshot provided for audit and rebuild reference.
 > It is **not required** for daily operation.
@@ -163,7 +163,7 @@ tpmstate0: ssd-data:112/vm-112-disk-2.qcow2,size=4M,version=v2.0
 vga: qxl
 ```
 
-## 2. System Update and Package Installation
+## System Update and Package Installation
 
 Update the system:
 
@@ -177,7 +177,7 @@ Install required packages:
 sudo pacman -S qemu-guest-agent openssh firewalld nano
 ```
 
-## 3. Enable Services (SSHD, Firewalld)
+## Enable Services (SSHD, Firewalld)
 
 Enable SSH and the firewall:
 
@@ -192,7 +192,7 @@ Reboot to finalize service state:
 sudo reboot
 ```
 
-## 4. Configure Firewall for SSH
+## Configure Firewall for SSH
 
 Allow SSH service through firewalld:
 
@@ -207,7 +207,7 @@ Verify active services:
 sudo firewall-cmd --list-services
 ```
 
-## 5. Configure Passwordless Sudo
+## Configure Passwordless Sudo
 
 For automation and administrative tasks, configure passwordless sudo
 for the primary user.
@@ -224,7 +224,7 @@ Add the following line:
 marelis ALL=(ALL) NOPASSWD:ALL
 ```
 
-### 5.1 Remove User from `wheel` Group
+### Remove User from `wheel` Group
 
 To avoid conflicts between group-based and user-specific sudo rules,
 remove the user from the `wheel` group:
@@ -239,9 +239,9 @@ Reboot to apply session changes:
 sudo reboot
 ```
 
-## 6. Configure SSH Access
+## Configure SSH Access
 
-### 6.1 Create SSH Directory and Keys
+### Create SSH Directory and Keys
 
 Ensure the `.ssh` directory exists and has correct permissions:
 
@@ -269,7 +269,7 @@ Set correct permissions:
 chmod 600 ~/.ssh/authorized_keys
 ```
 
-## 7. Test Connection
+## Test Connection
 
 From a Linux or WSL host:
 
