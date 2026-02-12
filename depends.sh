@@ -58,6 +58,10 @@ check_os() {
             distro="$word"
             version="${words[*]:i+1}"  # Combine remaining words for version
             break
+        elif [[ "$word" == "Arch" ]]; then
+            distro="Arch"
+            version="${words[*]:i+1}"
+            break            
         elif [[ "$word" == "Debian" || "$word" == "Ubuntu" || "$word" == "Fedora" || "$word" == "Mint" ]]; then
             distro="$word"
             # Check for GNU/Linux or Linux following the distro name
@@ -117,6 +121,10 @@ install_java() {
             sudo dnf install -y java-21-openjdk java-21-openjdk-devel java-21-openjdk-jmods
             sudo alternatives --config java
             ;;
+        arch)
+            sudo pacman -S --noconfirm jdk-openjdk
+            sudo archlinux-java status
+            ;;
         opensuse*)
             # openSUSE supports Java 8, 11, 17, and 21
             sudo zypper install -y java-21-openjdk java-21-openjdk-devel java-21-openjdk-jmods
@@ -171,6 +179,9 @@ update_system() {
             sudo dnf upgrade --refresh -y 
             sudo dnf autoremove -y
             ;;
+        arch)
+            sudo pacman -Syu --noconfirm
+            ;;            
         opensuse*)
             sudo zypper refresh
             sudo zypper update -y 
@@ -198,6 +209,9 @@ install_apps() {
         fedora)
             sudo dnf install -y p7zip p7zip-plugins binutils fakeroot rpm-build rpmlint
             ;;
+        arch)
+            sudo pacman -S --noconfirm p7zip binutils fakeroot rpm-tools rpmlint
+            ;;            
         opensuse*)
             sudo zypper install -y 7zip binutils fakeroot rpm-build rpmlint
             ;;

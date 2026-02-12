@@ -70,22 +70,22 @@ get_used_modules () {
 }
 
 build_java_runtime () {
-    echo "info: build java runtime"
-    manual_modules=",jdk.crypto.ec,jdk.localedata"
-    # First attempt with zip-9 compression
-    jlink --no-header-files --no-man-pages --compress=zip-9 --strip-debug \
-        --add-modules $modules$manual_modules --include-locales=en,de --output "$runtime_dir" || {
-        # Check for the specific error
-        if [[ ${PIPESTATUS[0]} == 1 ]] && grep -q "Error: Invalid compression level" <<< "${BASH_COMMAND}"; then
-            echo "warning: Invalid compression level, retrying with --compress=2"
-            # Second attempt with compression 2
-            jlink --no-header-files --no-man-pages --compress=2 --strip-debug \
-                --add-modules $modules$manual_modules --include-locales=en,de --output "$runtime_dir"
-        else
-            # Other error, let the script exit due to set -e
-            return 1 
-        fi
-    }
+  echo "info: build java runtime"
+  manual_modules=",jdk.crypto.ec,jdk.localedata"
+  err=$(mktemp)
+  if ! jlink --no-header-files --no-man-pages --compress=zip-9 --strip-debug \
+      --add-modules "$modules$manual_modules" --include-locales=en,de --output "$runtime_dir" \
+      2>"$err"; then
+    if grep -q "Invalid compression level" "$err"; then
+      echo "warning: Invalid compression level, retrying with --compress=2"
+      jlink --no-header-files --no-man-pages --compress=2 --strip-debug \
+        --add-modules "$modules$manual_modules" --include-locales=en,de --output "$runtime_dir"
+    else
+      cat "$err" >&2
+      return 1
+    fi
+  fi
+  rm -f "$err"
 }
 
 build_app_image () {
@@ -154,7 +154,7 @@ build_linux () {
   elif [ -x "$(command -v pkg)" ]; then
     build_pkg
   elif [ -x "$(command -v pacman)" ]; then
-    echo "error: the pacman package manager is not supported"
+    echo "info: Arch detected - building app-image + archives only (no native pacman package via jpackage)"
   fi
 }
 
