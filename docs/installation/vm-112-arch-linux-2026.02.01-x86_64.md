@@ -209,35 +209,71 @@ sudo firewall-cmd --list-services
 
 ## Configure Passwordless Sudo
 
-For automation and administrative tasks, configure passwordless sudo
-for the primary user.
+On Arch Linux, sudo privileges are often defined in `/etc/sudoers.d/` (created by `archinstall`).
+First **identify where the rule is actually defined**, then modify that file.
 
-Edit sudoers using `visudo`:
+### 1. Locate Existing Sudo Rules (Mandatory Check)
+
+Run:
 
 ```bash
-sudo EDITOR=nano visudo
+sudo grep -R "marelis" /etc/sudoers /etc/sudoers.d 2>/dev/null
 ```
 
-Add the following line:
+Typical output:
 
 ```text
-marelis ALL=(ALL) NOPASSWD:ALL
+/etc/sudoers.d/00_marelis:marelis ALL=(ALL) ALL
 ```
 
-### Remove User from `wheel` Group
+This tells you **which file must be edited**.
+Do not add a new rule elsewhere — that creates conflicts.
 
-To avoid conflicts between group-based and user-specific sudo rules,
-remove the user from the `wheel` group:
+### 2. Edit the Correct File
+
+Open the file reported above:
+
+```bash
+sudo EDITOR=nano visudo -f /etc/sudoers.d/00_marelis
+```
+
+Change:
+
+```text
+marelis ALL=(ALL) ALL
+```
+
+to:
+
+```text
+marelis ALL=(ALL) NOPASSWD: ALL
+```
+
+Save and exit. `visudo` validates syntax automatically.
+
+### 3. Apply Immediately (No Reboot)
+
+Clear cached credentials and test:
+
+```bash
+sudo -k
+sudo -n true
+```
+
+If successful, there is **no password prompt** and no output.
+
+### (Optional) Remove User from `wheel`
+
+Membership in `wheel` is not required when using a user-specific rule.
+Remove only if you want to prevent future group-based overrides:
 
 ```bash
 sudo gpasswd -d marelis wheel
 ```
 
-Reboot to apply session changes:
+(This does nothing if the user is not a member.)
 
-```bash
-sudo reboot
-```
+This reflects Arch’s default model: a per-user rule in `/etc/sudoers.d/` overrides group-based configuration, so only that file needs modification.
 
 ## Configure SSH Access
 
