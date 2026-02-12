@@ -12,8 +12,6 @@ The goal is:
 - ensure **correct ACLs**, which are critical on Windows
 - restrict the SSH user from any interactive login (GUI / RDP)
 
----
-
 ## Contents
 
 1. [Host Overview](#host-overview)
@@ -31,8 +29,6 @@ The goal is:
 10. [Restrict User Login to SSH Only](#9-restrict-user-login-to-ssh-only-disable-interactive-logon)
 11. [Result](#result)
 
----
-
 ## Host Overview
 
 - **OS:** Microsoft Windows 11 Pro 25H2 x64  
@@ -41,29 +37,23 @@ The goal is:
 - **Access model:** SSH-only administration
 - **Purpose:** Infrastructure host / automation / management node
 
----
-
 ## 1. Install Required Tools
 
 ### 1.1 Install PowerShell 7
 
 Download and install:
 
+```text
+PowerShell-7.5.4-win-x64.msi
 ```
 
-PowerShell-7.5.4-win-x64.msi
-
-````
-
 Run **PowerShell as Administrator** for all following steps.
-
----
 
 ## 2. Install OpenSSH Server
 
 ```powershell
 Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
-````
+```
 
 Verify installation:
 
@@ -73,12 +63,10 @@ Get-WindowsCapability -Online | Where-Object Name -like 'OpenSSH*'
 
 Expected state:
 
-```
+```powershell
 OpenSSH.Client  Installed
 OpenSSH.Server  Installed
 ```
-
----
 
 ## 3. Enable and Configure SSH Service
 
@@ -88,8 +76,6 @@ OpenSSH.Server  Installed
 Set-Service sshd -StartupType Automatic
 Start-Service sshd
 ```
-
----
 
 ### 3.2 Configure `sshd_config`
 
@@ -119,8 +105,6 @@ Restart service:
 Restart-Service sshd
 ```
 
----
-
 ## 4. Create Local User for SSH Access
 
 Create a dedicated automation / administration user:
@@ -132,14 +116,12 @@ net localgroup Administrators Worker /add
 
 Set password manually:
 
-```
+```text
 WIN + R → lusrmgr.msc
 ```
 
-* set password
-* password never expires
-
----
+- set password
+- password never expires
 
 ## 5. Determine User Home Directory
 
@@ -152,11 +134,9 @@ Get-ItemProperty `
 
 Expected result:
 
-```
+```powershell
 C:\Users\worker.<HOSTNAME>
 ```
-
----
 
 ## 6. Configure SSH Keys
 
@@ -174,8 +154,6 @@ Insert public keys:
 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBH9oiMFtQIMn9n6ljjiu+i9c2Z9qi7VnfXTlApTpe2e marelis@DESKTOP-MARELIS
 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINuEMOpt2H3hDrkkuzn8rPP4IY2BNNr+eOhyNp7yr+Al marelis@NTB-MARELIS
 ```
-
----
 
 ## 7. Critical: Set Correct ACLs (Windows OpenSSH Requirement)
 
@@ -196,8 +174,6 @@ Restart SSH service:
 ```powershell
 Restart-Service sshd
 ```
-
----
 
 ## 8. Test Connection
 
@@ -223,16 +199,12 @@ exit
 Connection closed.
 ```
 
----
-
 ## 9. Restrict User Login to SSH Only (Disable Interactive Logon)
 
 The `Worker` account is intended **only for remote administration via SSH**.
 All other interactive logon methods (console, RDP, local GUI login) are explicitly disabled.
 
 This is enforced at the **local security policy level**, not by SSH itself.
-
----
 
 ### 9.1 Deny Local and Remote Interactive Logon
 
@@ -256,8 +228,6 @@ secedit /configure /db secedit.sdb /cfg C:\Windows\Temp\secpol.cfg /areas USER_R
 
 Reboot is recommended.
 
----
-
 ### 9.2 Resulting Access Model
 
 | Access method            | Worker    |
@@ -268,12 +238,10 @@ Reboot is recommended.
 | GUI login                | ❌ Denied  |
 | Service / scheduled task | ✅ Allowed |
 
----
-
 ## Result
 
-* SSH access works using **ED25519 keys**
-* Password login is disabled
-* User is restricted from any interactive logon
-* Configuration is suitable for **host-level automation and management**
-* Host is safely integrated under `hosts.cfg`
+- SSH access works using **ED25519 keys**
+- Password login is disabled
+- User is restricted from any interactive logon
+- Configuration is suitable for **host-level automation and management**
+- Host is safely integrated under `hosts.cfg`

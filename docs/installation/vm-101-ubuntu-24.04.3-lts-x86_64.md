@@ -12,8 +12,6 @@ The goal is:
 - configure **key-based authentication**
 - allow **passwordless sudo** for automation and build tasks
 
----
-
 ## Contents
 
 1. [VM Overview](#vm-overview)
@@ -26,8 +24,6 @@ The goal is:
 8. [Test Connection](#6-test-connection)
 9. [Result](#result)
 
----
-
 ## VM Overview
 
 - **OS:** Ubuntu 24.04.3 LTS x86_64  
@@ -36,8 +32,6 @@ The goal is:
 - **Inventory group:** `vms.cfg`
 - **Management domain:** Proxmox-managed virtual machines
 - **Purpose:** Linux build station / automation node
-
----
 
 ## VM Classification and Management Scope
 
@@ -54,8 +48,6 @@ Characteristics of `vms.cfg` nodes:
 
 This classification distinguishes the system from physical or host-level
 machines listed under `hosts.cfg`.
-
----
 
 ## 1. Proxmox VM Reference Configuration
 
@@ -83,9 +75,7 @@ scsihw: virtio-scsi-single
 sockets: 1
 tpmstate0: ssd-data:101/vm-101-disk-2.qcow2,size=4M,version=v2.0
 vga: qxl
-````
-
----
+```
 
 ## 2. Initial System Setup
 
@@ -101,8 +91,6 @@ Reboot if required:
 ```bash
 sudo reboot
 ```
-
----
 
 ## 3. Install Required Packages
 
@@ -125,8 +113,6 @@ Reboot to finalize integration:
 sudo reboot
 ```
 
----
-
 ## 4. Configure Passwordless Sudo
 
 On Linux build and automation nodes, `sudo` is configured to allow
@@ -147,8 +133,6 @@ root        ALL=(ALL) ALL
 marelis     ALL=(ALL) NOPASSWD:ALL
 ```
 
----
-
 ### 4.2 Remove User from `sudo` Group
 
 To avoid conflicts between group-based and user-specific sudo rules,
@@ -162,8 +146,6 @@ sudo deluser marelis sudo
 > Membership in the `sudo` group grants elevated privileges that may
 > override user-specific `NOPASSWD` rules. Removing the user ensures
 > predictable, explicit behavior.
-
----
 
 ## 5. Configure SSH Access
 
@@ -189,8 +171,6 @@ chmod 700 ~/.ssh
 chmod 600 ~/.ssh/authorized_keys
 ```
 
----
-
 ## 6. Test Connection
 
 From a Linux or WSL host:
@@ -214,12 +194,10 @@ Verify passwordless sudo:
 sudo id
 ```
 
----
-
 ## Result
 
-* VM is fully managed under **Proxmox** and listed in `vms.cfg`
-* System is updated and integrated via **QEMU Guest Agent**
-* SSH access uses **ED25519 key authentication**
-* Passwordless sudo is configured for automation
-* VM is suitable for **build, CI, and infrastructure workloads**
+- VM is fully managed under **Proxmox** and listed in `vms.cfg`
+- System is updated and integrated via **QEMU Guest Agent**
+- SSH access uses **ED25519 key authentication**
+- Passwordless sudo is configured for automation
+- VM is suitable for **build, CI, and infrastructure workloads**

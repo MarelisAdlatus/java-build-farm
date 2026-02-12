@@ -16,8 +16,6 @@ The goal is:
 - configure firewall rules for SSH
 - document Secure Boot state (disabled)
 
----
-
 ## Contents
 
 1. [VM Overview](#vm-overview)
@@ -35,8 +33,6 @@ The goal is:
 13. [Test Connection](#7-test-connection)
 14. [Result](#result)
 
----
-
 ## VM Overview
 
 - **OS:** Arch Linux 2026.02.01 x86_64  
@@ -47,8 +43,6 @@ The goal is:
 - **CPU model:** `x86-64-v2-AES`
 - **Management domain:** Proxmox-managed virtual machines
 - **Purpose:** Rolling Linux VM / desktop validation and development node
-
----
 
 ## VM Classification and Management Scope
 
@@ -66,8 +60,6 @@ Characteristics of `vms.cfg` nodes:
 Because Arch Linux is a **rolling distribution**, this VM is treated as
 **non-persistent** and may be rebuilt when major transitions occur.
 
----
-
 ## Secure Boot and EFI Configuration
 
 Secure Boot is explicitly disabled for this VM.
@@ -77,8 +69,6 @@ Secure Boot is explicitly disabled for this VM.
 
 This avoids Secure Boot key enrollment requirements and keeps the VM
 reproducible in Proxmox environments.
-
----
 
 ## Pre-Install Notes (Networking)
 
@@ -97,8 +87,6 @@ sysctl -w net.ipv6.conf.all.disable_ipv6=1
 sysctl -w net.ipv6.conf.default.disable_ipv6=1
 ```
 
----
-
 ## OS Installation (archinstall)
 
 Run the guided installer:
@@ -109,15 +97,13 @@ archinstall
 
 Selected options (baseline):
 
-* **Localization:** `cz`, `cs_CZ.UTF-8`
-* **Mirrors / Repositories region:** Czechia
-* **Disk configuration:** Smart disk partitioning
-* **Hostname:** `vm-arch-linux`
-* **Profile / Type:** Desktop → KDE Plasma
-* **Time zone:** `Europe/Prague`
-* **Authentication:** Create a user account (example user: `marelis`)
-
----
+- **Localization:** `cz`, `cs_CZ.UTF-8`
+- **Mirrors / Repositories region:** Czechia
+- **Disk configuration:** Smart disk partitioning
+- **Hostname:** `vm-arch-linux`
+- **Profile / Type:** Desktop → KDE Plasma
+- **Time zone:** `Europe/Prague`
+- **Authentication:** Create a user account (example user: `marelis`)
 
 ## Post-Install Fixes (NetworkManager, Login Screen Language)
 
@@ -140,16 +126,14 @@ sudo systemctl start NetworkManager
 
 Then configure:
 
-* Czech keyboard layout
-* auto-login (if required for the VM farm workflow)
+- Czech keyboard layout
+- auto-login (if required for the VM farm workflow)
 
 Reboot to apply changes:
 
 ```bash
 sudo reboot
 ```
-
----
 
 ## 1. Proxmox VM Reference Configuration
 
@@ -179,8 +163,6 @@ tpmstate0: ssd-data:112/vm-112-disk-2.qcow2,size=4M,version=v2.0
 vga: qxl
 ```
 
----
-
 ## 2. System Update and Package Installation
 
 Update the system:
@@ -194,8 +176,6 @@ Install required packages:
 ```bash
 sudo pacman -S qemu-guest-agent openssh firewalld nano
 ```
-
----
 
 ## 3. Enable Services (SSHD, Firewalld)
 
@@ -212,8 +192,6 @@ Reboot to finalize service state:
 sudo reboot
 ```
 
----
-
 ## 4. Configure Firewall for SSH
 
 Allow SSH service through firewalld:
@@ -228,8 +206,6 @@ Verify active services:
 ```bash
 sudo firewall-cmd --list-services
 ```
-
----
 
 ## 5. Configure Passwordless Sudo
 
@@ -248,8 +224,6 @@ Add the following line:
 marelis ALL=(ALL) NOPASSWD:ALL
 ```
 
----
-
 ### 5.1 Remove User from `wheel` Group
 
 To avoid conflicts between group-based and user-specific sudo rules,
@@ -264,8 +238,6 @@ Reboot to apply session changes:
 ```bash
 sudo reboot
 ```
-
----
 
 ## 6. Configure SSH Access
 
@@ -297,8 +269,6 @@ Set correct permissions:
 chmod 600 ~/.ssh/authorized_keys
 ```
 
----
-
 ## 7. Test Connection
 
 From a Linux or WSL host:
@@ -322,16 +292,14 @@ Verify passwordless sudo:
 sudo id
 ```
 
----
-
 ## Result
 
-* VM is fully managed under **Proxmox** and listed in `vms.cfg`
-* Secure Boot is explicitly disabled (EFI pre-enrolled keys disabled)
-* System is installed via `archinstall` and uses KDE Plasma
-* NetworkManager is enabled for reliable network configuration
-* System is updated and integrated via **QEMU Guest Agent**
-* SSH access uses **ED25519 key authentication**
-* Firewall explicitly allows SSH
-* Passwordless sudo is configured for automation
-* VM is suitable for **rolling-release testing, development, and validation**
+- VM is fully managed under **Proxmox** and listed in `vms.cfg`
+- Secure Boot is explicitly disabled (EFI pre-enrolled keys disabled)
+- System is installed via `archinstall` and uses KDE Plasma
+- NetworkManager is enabled for reliable network configuration
+- System is updated and integrated via **QEMU Guest Agent**
+- SSH access uses **ED25519 key authentication**
+- Firewall explicitly allows SSH
+- Passwordless sudo is configured for automation
+- VM is suitable for **rolling-release testing, development, and validation**

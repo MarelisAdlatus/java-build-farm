@@ -13,8 +13,6 @@ The goal is:
 - allow **passwordless sudo** for automation and administration
 - document Secure Boot configuration state
 
----
-
 ## Contents
 
 1. [VM Overview](#vm-overview)
@@ -28,8 +26,6 @@ The goal is:
 9. [Test Connection](#6-test-connection)
 10. [Result](#result)
 
----
-
 ## VM Overview
 
 - **OS:** Pop!_OS 24.04 LTS x86_64  
@@ -40,8 +36,6 @@ The goal is:
 - **CPU model:** `x86-64-v2-AES`
 - **Management domain:** Proxmox-managed virtual machines
 - **Purpose:** Desktop-capable Linux VM / development and testing node
-
----
 
 ## VM Classification and Management Scope
 
@@ -59,8 +53,6 @@ Characteristics of `vms.cfg` nodes:
 This classification distinguishes the system from host-level machines
 listed under `hosts.cfg`.
 
----
-
 ## Secure Boot and EFI Configuration
 
 Secure Boot is explicitly disabled for this VM.
@@ -76,8 +68,6 @@ boot consistency inside Proxmox virtual environments.
 
 This configuration avoids unnecessary boot validation layers and keeps
 the VM reproducible.
-
----
 
 ## 1. Proxmox VM Reference Configuration
 
@@ -105,9 +95,7 @@ scsihw: virtio-scsi-single
 sockets: 1
 tpmstate0: ssd-data:111/vm-111-disk-2.qcow2,size=4M,version=v2.0
 vga: qxl
-````
-
----
+```
 
 ## 2. Initial System Setup
 
@@ -129,7 +117,39 @@ Reboot to ensure kernel and system components are fully applied:
 sudo reboot
 ```
 
----
+### Disable Automatic Suspend (Important for Build Farm)
+
+By default, Pop!_OS enables automatic suspend when the system is idle.
+This behavior **breaks long-running builds** and remote SSH sessions.
+
+To disable suspend:
+
+1. Open **Settings**
+2. Go to **Power**
+3. Set:
+   - **Automatic Suspend → Off**
+   - Disable both "On Battery" and "Plugged In"
+
+Alternatively (CLI method):
+
+```bash
+gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type 'nothing'
+gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type 'nothing'
+```
+
+Verify:
+
+```bash
+gsettings get org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type
+```
+
+Expected result:
+
+```bash
+'nothing'
+```
+
+> This step is mandatory for stable unattended farm operation.
 
 ## 3. Install Required Packages
 
@@ -152,8 +172,6 @@ Reboot to finalize integration:
 sudo reboot
 ```
 
----
-
 ## 4. Configure Passwordless Sudo
 
 For automation and administrative tasks, configure passwordless sudo
@@ -171,8 +189,6 @@ Add the following line:
 marelis ALL=(ALL) NOPASSWD:ALL
 ```
 
----
-
 ### 4.1 Remove User from `sudo` Group
 
 To avoid conflicts between group-based and user-specific sudo rules,
@@ -183,8 +199,6 @@ sudo deluser marelis sudo
 ```
 
 Log out and back in, or reboot if required.
-
----
 
 ## 5. Configure SSH Access
 
@@ -217,8 +231,6 @@ chmod 700 ~/.ssh
 chmod 600 ~/.ssh/authorized_keys
 ```
 
----
-
 ## 6. Test Connection
 
 From a Linux or WSL host:
@@ -242,13 +254,11 @@ Verify passwordless sudo:
 sudo id
 ```
 
----
-
 ## Result
 
-* VM is fully managed under **Proxmox** and listed in `vms.cfg`
-* Secure Boot is explicitly disabled
-* System is updated and integrated via **QEMU Guest Agent**
-* SSH access uses **ED25519 key authentication**
-* Passwordless sudo is configured for automation
-* VM is suitable for **desktop development and testing workloads**
+- VM is fully managed under **Proxmox** and listed in `vms.cfg`
+- Secure Boot is explicitly disabled
+- System is updated and integrated via **QEMU Guest Agent**
+- SSH access uses **ED25519 key authentication**
+- Passwordless sudo is configured for automation
+- VM is suitable for **desktop development and testing workloads**

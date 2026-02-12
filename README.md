@@ -27,7 +27,7 @@ Java Build Farm is a script-based automation system for building and packaging J
 
 The supported platform tiers (baseline targets, UI/UX targets, rolling releases, etc.) are defined in:
 
-- **[`docs/PLATFORMS.md`](docs/PLATFORMS.md)**
+- **[`PLATFORMS.md`](PLATFORMS.md)**
 
 This document is the source of truth for:
 
@@ -102,7 +102,6 @@ java-build-farm/
 ├── docs/
 │   ├── installation/                # Node setup documentation (VMs and hosts)
 │   └── images/
-│   └── PLATFORMS.md                 # Platform tiers and naming conventions
 ├── farm.sh                          # Central build and packaging script
 └── release/                         # Output directory for generated packages
     └── appname/

@@ -14,8 +14,6 @@ The goal is:
 - validate operation on **x86-64-v3** CPU architecture
 - provide a **short-lived, fast-moving Ubuntu test VM**
 
----
-
 ## Contents
 
 1. [VM Overview](#vm-overview)
@@ -28,8 +26,6 @@ The goal is:
 8. [Test Connection](#6-test-connection)
 9. [Result](#result)
 
----
-
 ## VM Overview
 
 - **OS:** Ubuntu 25.10 (non-LTS) x86_64  
@@ -40,8 +36,6 @@ The goal is:
 - **CPU model:** `x86-64-v3`
 - **Management domain:** Proxmox-managed virtual machines
 - **Purpose:** Rolling Ubuntu test VM / development and validation node
-
----
 
 ## VM Classification and Management Scope
 
@@ -59,8 +53,6 @@ Characteristics of `vms.cfg` nodes:
 Because Ubuntu non-LTS releases have a **short support window**, this VM
 is treated as **non-persistent** and may be rebuilt or removed at any
 time.
-
----
 
 ## 1. Proxmox VM Reference Configuration
 
@@ -88,9 +80,7 @@ scsihw: virtio-scsi-single
 sockets: 1
 tpmstate0: ssd-data:109/vm-109-disk-2.qcow2,size=4M,version=v2.0
 vga: qxl
-````
-
----
+```
 
 ## 2. Initial System Setup
 
@@ -106,8 +96,6 @@ Reboot to ensure kernel and core components are fully applied:
 ```bash
 sudo reboot
 ```
-
----
 
 ## 3. Install Required Packages
 
@@ -130,8 +118,6 @@ Reboot to finalize integration:
 sudo reboot
 ```
 
----
-
 ## 4. Configure Passwordless Sudo
 
 For automation, CI, and administration tasks, configure passwordless
@@ -149,8 +135,6 @@ Add the following line:
 marelis ALL=(ALL) NOPASSWD:ALL
 ```
 
----
-
 ### 4.1 Remove User from `sudo` Group
 
 To avoid conflicts between group-based and user-specific sudo rules,
@@ -161,8 +145,6 @@ sudo deluser marelis sudo
 ```
 
 Log out and back in, or reboot if required.
-
----
 
 ## 5. Configure SSH Access
 
@@ -195,8 +177,6 @@ chmod 700 ~/.ssh
 chmod 600 ~/.ssh/authorized_keys
 ```
 
----
-
 ## 6. Test Connection
 
 From a Linux or WSL host:
@@ -220,13 +200,11 @@ Verify passwordless sudo:
 sudo id
 ```
 
----
-
 ## Result
 
-* VM is fully managed under **Proxmox** and listed in `vms.cfg`
-* System is updated and integrated via **QEMU Guest Agent**
-* SSH access uses **ED25519 key authentication**
-* Passwordless sudo is configured for automation
-* CPU model `x86-64-v3` is explicitly validated
-* VM is suitable for **short-lived testing, development, and validation**
+- VM is fully managed under **Proxmox** and listed in `vms.cfg`
+- System is updated and integrated via **QEMU Guest Agent**
+- SSH access uses **ED25519 key authentication**
+- Passwordless sudo is configured for automation
+- CPU model `x86-64-v3` is explicitly validated
+- VM is suitable for **short-lived testing, development, and validation**

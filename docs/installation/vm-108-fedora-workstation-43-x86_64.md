@@ -15,8 +15,6 @@ The goal is:
 - ensure compatibility with **x86-64-v3** CPU features
 - provide a **desktop-capable Fedora Workstation VM**
 
----
-
 ## Contents
 
 1. [VM Overview](#vm-overview)
@@ -29,8 +27,6 @@ The goal is:
 8. [Test Connection](#6-test-connection)
 9. [Result](#result)
 
----
-
 ## VM Overview
 
 - **OS:** Fedora Workstation 43 x86_64  
@@ -41,8 +37,6 @@ The goal is:
 - **CPU model:** `x86-64-v3`
 - **Management domain:** Proxmox-managed virtual machines
 - **Purpose:** Desktop-capable Fedora VM / development and testing node
-
----
 
 ## VM Classification and Management Scope
 
@@ -59,8 +53,6 @@ Characteristics of `vms.cfg` nodes:
 
 This classification distinguishes the system from host-level machines
 listed under `hosts.cfg`.
-
----
 
 ## 1. Proxmox VM Reference Configuration
 
@@ -88,9 +80,7 @@ scsihw: virtio-scsi-single
 sockets: 1
 tpmstate0: ssd-data:108/vm-108-disk-2.qcow2,size=4M,version=v2.0
 vga: qxl
-````
-
----
+```
 
 ## 2. Initial System Setup
 
@@ -112,8 +102,6 @@ Reboot to ensure kernel and system components are fully applied:
 sudo reboot
 ```
 
----
-
 ## 3. Install Required Packages
 
 Install Proxmox integration and SSH server:
@@ -134,8 +122,6 @@ Reboot to finalize integration:
 sudo reboot
 ```
 
----
-
 ## 4. Configure Passwordless Sudo
 
 For automation and administration tasks, configure passwordless sudo
@@ -153,8 +139,6 @@ Add the following line:
 marelis ALL=(ALL) NOPASSWD:ALL
 ```
 
----
-
 ### 4.1 Remove User from `wheel` Group
 
 To avoid conflicts between group-based and user-specific sudo rules,
@@ -169,8 +153,6 @@ Reboot to apply session changes:
 ```bash
 sudo reboot
 ```
-
----
 
 ## 5. Configure SSH Access
 
@@ -203,8 +185,6 @@ chmod 700 ~/.ssh
 chmod 600 ~/.ssh/authorized_keys
 ```
 
----
-
 ## 6. Test Connection
 
 From a Linux or WSL host:
@@ -228,14 +208,12 @@ Verify passwordless sudo:
 sudo id
 ```
 
----
-
 ## Result
 
-* VM is fully managed under **Proxmox** and listed in `vms.cfg`
-* Hostname and CPU model (`x86-64-v3`) are explicitly defined
-* System is updated and integrated via **QEMU Guest Agent**
-* SSH access uses **ED25519 key authentication**
-* Passwordless sudo is configured for automation
-* Fedora Workstation (GNOME) desktop is available
-* VM is suitable for **development, testing, and desktop Linux workloads**
+- VM is fully managed under **Proxmox** and listed in `vms.cfg`
+- Hostname and CPU model (`x86-64-v3`) are explicitly defined
+- System is updated and integrated via **QEMU Guest Agent**
+- SSH access uses **ED25519 key authentication**
+- Passwordless sudo is configured for automation
+- Fedora Workstation (GNOME) desktop is available
+- VM is suitable for **development, testing, and desktop Linux workloads**

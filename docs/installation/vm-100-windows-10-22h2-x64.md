@@ -10,8 +10,6 @@ The goal is:
 - ensure **correct ACLs**, which are critical on Windows
 - restrict the SSH user from any interactive login (GUI / RDP)
 
----
-
 ## Contents
 
 1. [VM Overview](#vm-overview)
@@ -32,8 +30,6 @@ The goal is:
 12. [Restrict User Login to SSH Only](#10-restrict-user-login-to-ssh-only-disable-interactive-logon)
 13. [Result](#result)
 
----
-
 ## VM Overview
 
 - **OS:** Microsoft Windows 10 Pro 22H2 x64  
@@ -42,8 +38,6 @@ The goal is:
 - **Inventory group:** `vms.cfg`
 - **Management domain:** Proxmox-managed virtual machines
 - **Purpose:** Farm node / remote administration via SSH
-
----
 
 ## VM Classification and Management Scope
 
@@ -60,8 +54,6 @@ Characteristics of `vms.cfg` nodes:
 This classification distinguishes the system from physical or host-level
 machines listed under `hosts.cfg`, which are **not** managed by Proxmox
 and follow a different persistence and trust model.
-
----
 
 ## 1. Proxmox VM Reference Configuration
 
@@ -89,9 +81,7 @@ scsihw: virtio-scsi-single
 sockets: 1
 tpmstate0: local-lvm:vm-100-disk-2,size=4M,version=v2.0
 vga: qxl
-````
-
----
+```
 
 ## 2. Install Required Drivers and Tools
 
@@ -99,30 +89,26 @@ vga: qxl
 
 Mount and install drivers from:
 
-```
+```text
 virtio-win-0.1.285.iso
 ```
 
 Install:
 
-* network
-* storage
-* balloon
-* guest agent
-
----
+- network
+- storage
+- balloon
+- guest agent
 
 ### 2.2 Install PowerShell 7
 
 Download and install:
 
-```
+```text
 PowerShell-7.5.4-win-x64.msi
 ```
 
 Run **PowerShell as Administrator**.
-
----
 
 ## 3. Install OpenSSH Server
 
@@ -138,12 +124,10 @@ Get-WindowsCapability -Online | Where-Object Name -like 'OpenSSH*'
 
 Expected state:
 
-```
+```powershell
 OpenSSH.Client  Installed
 OpenSSH.Server  Installed
 ```
-
----
 
 ## 4. Enable and Configure SSH Service
 
@@ -153,8 +137,6 @@ OpenSSH.Server  Installed
 Set-Service sshd -StartupType Automatic
 Start-Service sshd
 ```
-
----
 
 ### 4.2 Configure `sshd_config`
 
@@ -184,8 +166,6 @@ Restart service:
 Restart-Service sshd
 ```
 
----
-
 ## 5. Create Local User for SSH Access
 
 Create user:
@@ -197,14 +177,12 @@ net localgroup Administrators Worker /add
 
 Set password manually:
 
-```
+```text
 WIN + R → lusrmgr.msc
 ```
 
-* set password
-* password never expires
-
----
+- set password
+- password never expires
 
 ## 6. Determine User Home Directory
 
@@ -217,11 +195,9 @@ Get-ItemProperty `
 
 Expected result:
 
-```
+```powershell
 C:\Users\worker.VM-WIN10
 ```
-
----
 
 ## 7. Configure SSH Keys
 
@@ -239,8 +215,6 @@ Insert public keys:
 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBH9oiMFtQIMn9n6ljjiu+i9c2Z9qi7VnfXTlApTpe2e marelis@DESKTOP-MARELIS
 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINuEMOpt2H3hDrkkuzn8rPP4IY2BNNr+eOhyNp7yr+Al marelis@NTB-MARELIS
 ```
-
----
 
 ## 8. Critical: Set Correct ACLs (Windows OpenSSH Requirement)
 
@@ -261,8 +235,6 @@ Restart SSH service:
 ```powershell
 Restart-Service sshd
 ```
-
----
 
 ## 9. Test Connection
 
@@ -288,16 +260,12 @@ exit
 Connection closed.
 ```
 
----
-
 ## 10. Restrict User Login to SSH Only (Disable Interactive Logon)
 
 The `Worker` account is intended **only for remote administration via SSH**.
 All other interactive logon methods (console, RDP, local GUI login) are explicitly disabled.
 
 This is enforced at the **local security policy level**, not by SSH itself.
-
----
 
 ### 10.1 Deny Local and Remote Interactive Logon
 
@@ -321,8 +289,6 @@ secedit /configure /db secedit.sdb /cfg C:\Windows\Temp\secpol.cfg /areas USER_R
 
 Reboot is recommended but not strictly required.
 
----
-
 ### 10.2 Resulting Access Model
 
 | Access method            | Worker    |
@@ -333,12 +299,10 @@ Reboot is recommended but not strictly required.
 | GUI login                | ❌ Denied  |
 | Service / scheduled task | ✅ Allowed |
 
----
-
 ## Result
 
-* SSH access works using **ED25519 keys**
-* Password login is disabled
-* User is restricted from any interactive logon
-* Configuration is suitable for **automated VM farm usage**
-* Node is fully managed under the `vms.cfg` / Proxmox lifecycle model
+- SSH access works using **ED25519 keys**
+- Password login is disabled
+- User is restricted from any interactive logon
+- Configuration is suitable for **automated VM farm usage**
+- Node is fully managed under the `vms.cfg` / Proxmox lifecycle model

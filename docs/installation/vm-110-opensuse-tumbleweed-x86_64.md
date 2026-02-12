@@ -15,8 +15,6 @@ The goal is:
 - validate operation on **x86-64-v3** CPU architecture
 - provide a **fast-moving rolling Linux VM** for testing and development
 
----
-
 ## Contents
 
 1. [VM Overview](#vm-overview)
@@ -30,8 +28,6 @@ The goal is:
 9. [Test Connection](#7-test-connection)
 10. [Result](#result)
 
----
-
 ## VM Overview
 
 - **OS:** openSUSE Tumbleweed (rolling) x86_64  
@@ -42,8 +38,6 @@ The goal is:
 - **CPU model:** `x86-64-v3`
 - **Management domain:** Proxmox-managed virtual machines
 - **Purpose:** Rolling Linux VM / development and validation node
-
----
 
 ## VM Classification and Management Scope
 
@@ -61,8 +55,6 @@ Characteristics of `vms.cfg` nodes:
 Because openSUSE Tumbleweed is a **rolling distribution**, this VM is
 treated as **non-persistent** and may be rebuilt if major transitions
 or regressions occur.
-
----
 
 ## 1. Proxmox VM Reference Configuration
 
@@ -90,9 +82,7 @@ scsihw: virtio-scsi-single
 sockets: 1
 tpmstate0: ssd-data:110/vm-110-disk-2.qcow2,size=4M,version=v2.0
 vga: qxl
-````
-
----
+```
 
 ## 2. Initial System Setup
 
@@ -113,8 +103,6 @@ Reboot to ensure kernel and core components are fully applied:
 ```bash
 sudo reboot
 ```
-
----
 
 ## 3. Install Required Packages
 
@@ -137,8 +125,6 @@ Reboot to finalize integration:
 sudo reboot
 ```
 
----
-
 ## 4. Configure Firewall for SSH
 
 Allow SSH service through the firewall:
@@ -153,8 +139,6 @@ Verify active services:
 ```bash
 sudo firewall-cmd --list-services
 ```
-
----
 
 ## 5. Configure Passwordless Sudo
 
@@ -173,8 +157,6 @@ Add the following line:
 marelis ALL=(ALL) NOPASSWD:ALL
 ```
 
----
-
 ### 5.1 Remove User from `wheel` Group
 
 To avoid conflicts between group-based and user-specific sudo rules,
@@ -189,8 +171,6 @@ Reboot to apply session changes:
 ```bash
 sudo reboot
 ```
-
----
 
 ## 6. Configure SSH Access
 
@@ -223,8 +203,6 @@ chmod 700 ~/.ssh
 chmod 600 ~/.ssh/authorized_keys
 ```
 
----
-
 ## 7. Test Connection
 
 From a Linux or WSL host:
@@ -248,14 +226,12 @@ Verify passwordless sudo:
 sudo id
 ```
 
----
-
 ## Result
 
-* VM is fully managed under **Proxmox** and listed in `vms.cfg`
-* System follows the **rolling-release update model**
-* SSH access uses **ED25519 key authentication**
-* Firewall explicitly allows SSH
-* Passwordless sudo is configured for automation
-* CPU model `x86-64-v3` is explicitly validated
-* VM is suitable for **cutting-edge testing, development, and validation**
+- VM is fully managed under **Proxmox** and listed in `vms.cfg`
+- System follows the **rolling-release update model**
+- SSH access uses **ED25519 key authentication**
+- Firewall explicitly allows SSH
+- Passwordless sudo is configured for automation
+- CPU model `x86-64-v3` is explicitly validated
+- VM is suitable for **cutting-edge testing, development, and validation**

@@ -13,8 +13,6 @@ The goal is:
 - configure **key-based authentication**
 - allow **passwordless sudo** for automation and administration
 
----
-
 ## Contents
 
 1. [VM Overview](#vm-overview)
@@ -28,8 +26,6 @@ The goal is:
 9. [Test Connection](#7-test-connection)
 10. [Result](#result)
 
----
-
 ## VM Overview
 
 - **OS:** Debian 13.3 (Trixie) stable x86_64  
@@ -38,8 +34,6 @@ The goal is:
 - **Inventory group:** `vms.cfg`
 - **Management domain:** Proxmox-managed virtual machines
 - **Purpose:** Linux utility / build / automation node
-
----
 
 ## VM Classification and Management Scope
 
@@ -56,8 +50,6 @@ Characteristics of `vms.cfg` nodes:
 
 This classification distinguishes the system from physical or host-level
 machines listed under `hosts.cfg`.
-
----
 
 ## 1. Proxmox VM Reference Configuration
 
@@ -85,9 +77,7 @@ scsihw: virtio-scsi-single
 sockets: 1
 tpmstate0: ssd-data:102/vm-102-disk-2.qcow2,size=4M,version=v2.0
 vga: qxl
-````
-
----
+```
 
 ## 2. Prepare APT Sources
 
@@ -111,8 +101,6 @@ Verify the change:
 grep cdrom /etc/apt/sources.list
 ```
 
----
-
 ## 3. Initial System Update
 
 Update the package index and upgrade installed packages:
@@ -121,8 +109,6 @@ Update the package index and upgrade installed packages:
 sudo apt update
 sudo apt upgrade
 ```
-
----
 
 ## 4. Install Required Packages
 
@@ -145,8 +131,6 @@ Reboot to finalize integration:
 sudo reboot
 ```
 
----
-
 ## 5. Configure Passwordless Sudo
 
 For automation and administration, the primary user is granted
@@ -166,8 +150,6 @@ marelis ALL=(ALL) NOPASSWD:ALL
 
 > This rule provides explicit, user-scoped privilege escalation suitable
 > for automation and scripted tasks.
-
----
 
 ## 6. Configure SSH Access
 
@@ -193,8 +175,6 @@ chmod 700 ~/.ssh
 chmod 600 ~/.ssh/authorized_keys
 ```
 
----
-
 ## 7. Test Connection
 
 From a Linux or WSL host:
@@ -218,13 +198,11 @@ Verify passwordless sudo:
 sudo id
 ```
 
----
-
 ## Result
 
-* VM is fully managed under **Proxmox** and listed in `vms.cfg`
-* APT sources are clean and ISO-based entries removed
-* System is updated and integrated via **QEMU Guest Agent**
-* SSH access uses **ED25519 key authentication**
-* Passwordless sudo is configured for automation
-* VM is suitable for **general-purpose Linux workloads**
+- VM is fully managed under **Proxmox** and listed in `vms.cfg`
+- APT sources are clean and ISO-based entries removed
+- System is updated and integrated via **QEMU Guest Agent**
+- SSH access uses **ED25519 key authentication**
+- Passwordless sudo is configured for automation
+- VM is suitable for **general-purpose Linux workloads**

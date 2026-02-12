@@ -13,8 +13,6 @@ The goal is:
 - allow **passwordless sudo** for automation and administration
 - ensure firewall allows SSH access
 
----
-
 ## Contents
 
 1. [VM Overview](#vm-overview)
@@ -28,8 +26,6 @@ The goal is:
 9. [Test Connection](#7-test-connection)
 10. [Result](#result)
 
----
-
 ## VM Overview
 
 - **OS:** openSUSE Leap 16.0 x86_64  
@@ -38,8 +34,6 @@ The goal is:
 - **Inventory group:** `cms.cfg`
 - **Management domain:** Proxmox-managed virtual machines
 - **Purpose:** CMS / service / Linux workload node
-
----
 
 ## VM Classification and Management Scope
 
@@ -56,8 +50,6 @@ Characteristics of `cms.cfg` nodes:
 
 This classification distinguishes the system from general-purpose build
 nodes (`vms.cfg`) and host-level machines (`hosts.cfg`).
-
----
 
 ## 1. Proxmox VM Reference Configuration
 
@@ -85,9 +77,7 @@ scsihw: virtio-scsi-single
 sockets: 1
 tpmstate0: ssd-data:103/vm-103-disk-2.qcow2,size=4M,version=v2.0
 vga: qxl
-````
-
----
+```
 
 ## 2. Initial System Setup
 
@@ -108,8 +98,6 @@ Reboot to ensure kernel and core components are fully applied:
 ```bash
 sudo reboot
 ```
-
----
 
 ## 3. Install Required Packages
 
@@ -132,8 +120,6 @@ Reboot to finalize integration:
 sudo reboot
 ```
 
----
-
 ## 4. Configure Firewall for SSH
 
 Allow SSH service through the firewall:
@@ -148,8 +134,6 @@ Verify active services:
 ```bash
 sudo firewall-cmd --list-services
 ```
-
----
 
 ## 5. Configure Passwordless Sudo
 
@@ -168,8 +152,6 @@ Add the following line:
 marelis ALL=(ALL) NOPASSWD:ALL
 ```
 
----
-
 ### 5.1 Remove User from `wheel` Group
 
 To avoid conflicts between group-based and user-specific sudo rules,
@@ -184,8 +166,6 @@ Reboot to apply session changes:
 ```bash
 sudo reboot
 ```
-
----
 
 ## 6. Configure SSH Access
 
@@ -218,8 +198,6 @@ chmod 700 ~/.ssh
 chmod 600 ~/.ssh/authorized_keys
 ```
 
----
-
 ## 7. Test Connection
 
 From a Linux or WSL host:
@@ -243,13 +221,11 @@ Verify passwordless sudo:
 sudo id
 ```
 
----
-
 ## Result
 
-* VM is fully managed under **Proxmox** and listed in `cms.cfg`
-* System is refreshed and integrated via **QEMU Guest Agent**
-* SSH access uses **ED25519 key authentication**
-* Firewall explicitly allows SSH
-* Passwordless sudo is configured for automation
-* VM is suitable for **CMS and service-oriented workloads**
+- VM is fully managed under **Proxmox** and listed in `cms.cfg`
+- System is refreshed and integrated via **QEMU Guest Agent**
+- SSH access uses **ED25519 key authentication**
+- Firewall explicitly allows SSH
+- Passwordless sudo is configured for automation
+- VM is suitable for **CMS and service-oriented workloads**
