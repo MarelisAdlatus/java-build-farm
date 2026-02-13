@@ -58,11 +58,7 @@ check_os() {
             distro="$word"
             version="${words[*]:i+1}"  # Combine remaining words for version
             break
-        elif [[ "$word" == "Arch" ]]; then
-            distro="Arch"
-            version="${words[*]:i+1}"
-            break            
-        elif [[ "$word" == "Debian" || "$word" == "Ubuntu" || "$word" == "Fedora" || "$word" == "Mint" ]]; then
+        elif [[ "$word" == "Debian" || "$word" == "Ubuntu" || "$word" == "Fedora" || "$word" == "Mint" || "$word" == "Pop!_OS" ]]; then
             distro="$word"
             # Check for GNU/Linux or Linux following the distro name
             if [[ "${words[i+1]}" == "GNU/Linux" || "${words[i+1]}" == "Linux" ]]; then
@@ -94,15 +90,15 @@ install_java() {
 
     case "$distro" in
         debian)
-            # Debian supports Java 8, 11 and 17
-            if [[ $major_version -ge 10 ]]; then
-                sudo apt-get install -y openjdk-17-jdk
+            # Debian 12+ supports Java 17 and 21
+            if [[ $major_version -ge 12 ]]; then
+                sudo apt-get install -y openjdk-21-jdk
             else
-                sudo apt-get install -y openjdk-11-jdk
+                sudo apt-get install -y openjdk-17-jdk
             fi
             sudo update-alternatives --config java
             ;;
-        ubuntu | mint)
+        ubuntu | mint | pop!_os)
             # Ubuntu supports Java 8, 11, 17, and 21
             sudo apt-get install -y openjdk-21-jdk
             sudo update-alternatives --config java
@@ -120,10 +116,6 @@ install_java() {
             # Fedora supports Java 11, 17, and 21
             sudo dnf install -y java-21-openjdk java-21-openjdk-devel java-21-openjdk-jmods
             sudo alternatives --config java
-            ;;
-        arch)
-            sudo pacman -S --noconfirm jdk-openjdk
-            sudo archlinux-java status
             ;;
         opensuse*)
             # openSUSE supports Java 8, 11, 17, and 21
@@ -161,7 +153,7 @@ update_system() {
     echo "Updating and upgrading packages on $os $distro $version..." 
 
     case "$distro" in
-        debian | ubuntu | mint)
+        debian | ubuntu | mint | pop!_os)
             sudo apt-get update
             sudo apt-get upgrade -y
             sudo apt-get autoremove -y
@@ -179,9 +171,6 @@ update_system() {
             sudo dnf upgrade --refresh -y 
             sudo dnf autoremove -y
             ;;
-        arch)
-            sudo pacman -Syu --noconfirm
-            ;;            
         opensuse*)
             sudo zypper refresh
             sudo zypper update -y 
@@ -200,20 +189,17 @@ install_apps() {
     echo "Installing apps on $os $distro $version..."
 
     case "$distro" in
-        debian | ubuntu | mint)
+        debian | ubuntu | mint | pop!_os)
             sudo apt-get install -y p7zip-full binutils fakeroot
             ;;
         rocky | centos | alma)
-            sudo dnf install -y p7zip p7zip-plugins binutils fakeroot rpm-build rpmlint
+            sudo dnf install -y p7zip p7zip-plugins binutils fakeroot rpm-build
             ;;
         fedora)
-            sudo dnf install -y p7zip p7zip-plugins binutils fakeroot rpm-build rpmlint
+            sudo dnf install -y p7zip p7zip-plugins binutils fakeroot rpm-build
             ;;
-        arch)
-            sudo pacman -S --noconfirm p7zip binutils fakeroot rpm-tools rpmlint
-            ;;            
         opensuse*)
-            sudo zypper install -y 7zip binutils fakeroot rpm-build rpmlint
+            sudo zypper install -y 7zip binutils fakeroot rpm-build
             ;;
         *)
             echo -e "${RED}Unsupported Linux distribution: $distro. Application installation skipped.${NC}" >&2
@@ -222,8 +208,18 @@ install_apps() {
     esac
 }
 
+get_hostname() {
+  if command -v hostname >/dev/null 2>&1; then
+    hostname
+  elif command -v hostnamectl >/dev/null 2>&1; then
+    hostnamectl --static
+  else
+    echo "unknown"
+  fi
+}
+
 # Get the hostname of the current machine
-hostname=$(hostname)
+hostname=$(get_hostname)
 
 check_os  # Call the function to check OS details
 

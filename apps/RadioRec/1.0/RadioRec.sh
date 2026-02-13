@@ -154,7 +154,7 @@ build_linux () {
   elif [ -x "$(command -v pkg)" ]; then
     build_pkg
   elif [ -x "$(command -v pacman)" ]; then
-    echo "info: Arch detected - building app-image + archives only (no native pacman package via jpackage)"
+    echo "info: Arch detected - building app-image + archives only"
   fi
 }
 

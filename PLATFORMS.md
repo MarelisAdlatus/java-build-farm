@@ -25,7 +25,6 @@ Failure on any of these targets = **No Release**.
 - **Market Share:** ~30–35% of Linux desktops
 - Primary target for most desktop users.
 - GNOME reference implementation.
-- Standard Flatpak environment.
 - Locales: `cs`, `en`, `de`, `fr`, etc.
 
 ### 2) **Debian Stable**
@@ -104,7 +103,6 @@ Systems that **precede current LTS releases**.
 - **Download:** [https://fedoraproject.org/workstation/download](https://fedoraproject.org/workstation/download)
 - **Market Share:** ~4–6%
 - Cutting-edge GTK / Mesa / PipeWire.
-- Flatpak-first distribution.
 - Frequently breaks legacy assumptions.
 
 ### 9) **Ubuntu (Non-LTS)**
@@ -127,25 +125,12 @@ Used to detect ABI changes, regressions, and update-related issues.
 - **Download:** [https://get.opensuse.org/tumbleweed](https://get.opensuse.org/tumbleweed)
 - **Market Share:** ~2–3%
 - Rolling release with strong QA.
-- Very good Flatpak integration.
-
-### 11) **Arch Linux**
-
-(Manual DE selection – GNOME / KDE)
-
-- **Download:** [https://archlinux.org/download](https://archlinux.org/download)
-- **Market Share:** ~5–8% (Arch ecosystem)
-- Pure rolling release.
-- Upstream-first libraries and toolchains.
-- No downstream patching or delays.
-- **Purpose:** Detect raw ABI / toolchain breakage early.
-- **Rationale:** Replaces Manjaro (no downstream modifications, no lag).
 
 ## TIER 5 – Edge & Specialized Environments
 
 Optional but **high-value for UI/WM-specific bugs**.
 
-### 12) **Pop!_OS**
+### 11) **Pop!_OS**
 
 (COSMIC)
 
@@ -163,10 +148,9 @@ Optional but **high-value for UI/WM-specific bugs**.
 | LTS + Stable Releases                  | ✅      |
 | Latest “Bleeding Edge”                 | ✅      |
 | Rolling Releases                       | ✅      |
-| DEB + RPM + Arch Ecosystems            | ✅      |
+| DEB + RPM Ecosystems                   | ✅      |
 | Enterprise (RHEL-like)                 | ✅      |
 | X11 + Wayland                          | ✅      |
-| Flatpak Portals                        | ✅      |
 | Localization (cs + others)             | ✅      |
 
 ## Operational Recommendations
@@ -194,24 +178,22 @@ This is the **de-facto standard** in the Linux/Unix world.
 
 ### Equivalents (Technical Synonyms)
 
-| Designation | Context | Note |
-| --- | --- | --- |
-| **`x86_64`** | Linux / GNU / POSIX | **Recommended Choice** |
-| **`amd64`** | Debian / Ubuntu / .deb | Legacy but common |
-| **`x64`** | Marketing / Windows | Vague, but understood |
-| **`x86-64`** | Documentation | Typographical variant |
-| **`EM64T`** | Intel (Historical) | **Deprecated** |
-| **`Intel 64`** | Intel Marketing | **Deprecated** |
+| Designation    | Context                | Note                   |
+| -------------- | ---------------------- | ---------------------- |
+| **`x86_64`**   | Linux / GNU / POSIX    | **Recommended Choice** |
+| **`amd64`**    | Debian / Ubuntu / .deb | Legacy but common      |
+| **`x64`**      | Marketing / Windows    | Vague, but understood  |
+| **`x86-64`**   | Documentation          | Typographical variant  |
+| **`EM64T`**    | Intel (Historical)     | **Deprecated**         |
+| **`Intel 64`** | Intel Marketing        | **Deprecated**         |
 
 ### Distribution-Specific Naming
 
-| Distribution | Designation |
-| --- | --- |
-| Ubuntu / Debian | `amd64` |
-| Fedora / RHEL / Rocky | `x86_64` |
-| openSUSE | `x86_64` |
-| Arch / Manjaro | `x86_64` |
-| Flatpak | `x86_64` |
+| Distribution          | Designation |
+| --------------------- | ----------- |
+| Ubuntu / Debian       | `amd64`     |
+| Fedora / RHEL / Rocky | `x86_64`    |
+| openSUSE              | `x86_64`    |
 
 *Note: The difference is purely in the naming; the underlying architecture is identical.*
 

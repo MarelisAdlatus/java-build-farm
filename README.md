@@ -41,7 +41,7 @@ This document is the source of truth for:
 - Automated dependency installation for Linux and Windows hosts
 - Support for multiple operating systems and distributions:
   - Windows (10/11)
-  - Debian, Ubuntu (LTS and non-LTS), Fedora, Rocky Linux, openSUSE (Leap/Tumbleweed), Linux Mint, Pop!_OS, Arch
+  - Debian, Ubuntu (LTS and non-LTS), Fedora, Rocky Linux, openSUSE (Leap/Tumbleweed), Linux Mint, Pop!_OS
 - SSH-based remote execution and deployment
 - Java Runtime creation using `jlink`
 - Application packaging using `jpackage`
@@ -240,9 +240,6 @@ These are the currently documented nodes:
 
 - **VM 111 – Pop!_OS 24.04 LTS x86_64**  
   [Documentation](docs/installation/vm-111-pop!_os-24.04-lts-x86_64.md)
-
-- **VM 112 – Arch Linux 2026.02.01 x86_64**  
-  [Documentation](docs/installation/vm-112-arch-linux-2026.02.01-x86_64.md)
 
 ## Installation and Node Provisioning
 

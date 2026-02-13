@@ -39,13 +39,13 @@ $temp_dir = "temp"
 $release_dir = "release"
 
 # Java JDK bin directory path (adjust as needed)
-$javaBinPath = "C:\Program Files\Java\jdk-21\bin"
+$javaBinPath = "C:\Users\Worker\AppData\Local\EclipseAdoptium\jdk-21.0.9.10-hotspot\bin"
 
 # 7-Zip bin directory path (adjust as needed)
-$sevenZipPath = "C:\Program Files\7-Zip"
+$sevenZipPath = "C:\Users\Worker\AppData\Local\7-Zip"
 
 # Inno Setup bin directory path (adjust as needed)
-$innoSetupPath = "C:\Program Files (x86)\Inno Setup 6"
+$innoSetupPath = "C:\Users\Worker\AppData\Local\Inno Setup 6"
 
 $global:modules = "" 
 
@@ -59,7 +59,7 @@ foreach ($exe in $javaExecutables) {
 }
 
 # Check if 7-Zip bin directory exists
-if (-Not (Test-Path "$sevenZipPath\7z.exe")) {
+if (-Not (Test-Path "$sevenZipPath\7za.exe")) {
     Write-Error "7-Zip binary not found at $sevenZipPath. Please update the path in the script."
     exit 1
 }
@@ -110,7 +110,7 @@ function build_app_image {
 
 function archive_app_image {
     Write-Output "info: archive app image to zip"
-    & "$sevenZipPath\7z.exe" a -tzip -bso0 "${release_dir}\${app_name}-${app_version}-image.zip" $app_name
+    & "$sevenZipPath\7za.exe" a -tzip -bso0 "${release_dir}\${app_name}-${app_version}-image.zip" $app_name
 }
 
 function build_inno_setup {

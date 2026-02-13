@@ -127,6 +127,115 @@ check_ssh_connection() {
     done
 }
 
+check_conditions_target_win() {
+    local target=$1
+
+    # Test for internet connectivity on Windows
+    echo -n "    * Test Internet: "
+    if ssh -q "$target" "ping -n 1 www.google.com 2>NUL" >/dev/null; then
+        echo -e "${GREEN}OK${NC}"
+    else
+        echo -e "${RED}Failed${NC}"
+    fi
+
+    # Test for PowerShell on Windows
+    echo -n "    * Test PowerShell: "
+    if ssh -q "$target" "pwsh --version 2>NUL" >/dev/null; then
+        local pwsh_version
+        pwsh_version=$(ssh -q "$target" "pwsh --version 2>NUL" | tr -d '\r\n' | head -n 1 | awk '{print $2}')
+        echo -e "${GREEN}OK (version $pwsh_version)${NC}"
+    else
+        echo -e "${RED}Failed${NC}"
+    fi
+
+    # Test for PowerShell execution policy
+    echo -n "    * Test PowerShell Execution Policy: "
+    local execution_policy
+    execution_policy=$(ssh -q "$target" "pwsh -Command \"Get-ExecutionPolicy\" 2>NUL" | tr -d '\r\n')
+    if [[ "$execution_policy" == "Restricted" ]]; then
+        echo -e "${YELLOW}Restricted (scripts cannot be run)${NC}"
+    else
+        echo -e "${GREEN}$execution_policy${NC}"
+    fi
+
+    # Test for Java availability and version (Windows; User PATH only; java preferred)
+    echo -n "    * Test Java: "
+
+    local out
+    out=$(ssh -q "$target" \
+    "pwsh -NoProfile -Command \"\
+        \$p=[Environment]::GetEnvironmentVariable('Path','User') -split ';'; \
+        foreach(\$d in \$p){ \
+        \$java  = Join-Path \$d 'java.exe'; \
+        \$javac = Join-Path \$d 'javac.exe'; \
+        if(Test-Path \$java){ \
+            \$line = (& \$java -version 2>&1 | Select-Object -First 1); \
+            Write-Output ('JAVA|' + \$line); exit 0 \
+        } \
+        if(Test-Path \$javac){ \
+            \$line = (& \$javac -version 2>&1 | Select-Object -First 1); \
+            Write-Output ('JAVAC|' + \$line); exit 0 \
+        } \
+        } \
+        Write-Output 'NONE|'; exit 0\"" \
+    2>/dev/null \
+    | tr -d '\r' \
+    | sed -r 's/\x1B\[[0-9;]*[mK]//g') # strip ANSI colors
+
+    case "$out" in
+    JAVA\|*)
+        echo -e "${GREEN}OK (${out#JAVA|})${NC}"
+        ;;
+    JAVAC\|*)
+        echo -e "${YELLOW}JRE not found, JDK present (${out#JAVAC|})${NC}"
+        ;;
+    *)
+        echo -e "${RED}Not installed${NC}"
+        ;;
+    esac
+}
+
+check_conditions_target_lin() {
+    local target=$1
+
+    # Test for internet connectivity on Linux
+    echo -n "    * Test Internet: "
+    if ssh -q "$target" "bash -c 'exec 3<>/dev/tcp/1.1.1.1/443'" >/dev/null 2>&1; then
+        echo -e "${GREEN}OK${NC}"
+    else
+        echo -e "${RED}Failed${NC}"
+    fi
+
+    # Test for sudo on Linux
+    echo -n "    * Test Sudo: "
+    if ssh -q "$target" "sudo -n true" >/dev/null 2>&1; then
+        echo -e "${GREEN}OK${NC}"
+    else
+        echo -e "${RED}Failed${NC}"
+    fi
+
+    # Test for Bash availability and path
+    echo -n "    * Test Bash: "
+    if ssh -q "$target" "command -v bash" >/dev/null 2>&1; then
+        bash_path=$(ssh -q "$target" "command -v bash" | tr -d '\r\n')
+        echo -e "${GREEN}OK (path: $bash_path)${NC}"
+    else
+        echo -e "${RED}Failed${NC}"
+    fi
+
+    # Test for Java availability and version
+    echo -n "    * Test Java: "
+    if ssh -q "$target" "command -v java" >/dev/null 2>&1; then
+        java_version=$(ssh -q "$target" "java -version 2>&1 | head -n 1" | tr -d '\r')
+        echo -e "${GREEN}OK ($java_version)${NC}"
+    elif ssh -q "$target" "command -v javac" >/dev/null 2>&1; then
+        javac_version=$(ssh -q "$target" "javac -version 2>&1" | tr -d '\r\n')
+        echo -e "${YELLOW}JRE not found, JDK present ($javac_version)${NC}"
+    else
+        echo -e "${RED}Not installed${NC}"
+    fi    
+}
+
 # Test conditions on a target (VM or host)
 check_conditions_target() {
     local target=$1
@@ -134,69 +243,26 @@ check_conditions_target() {
 
     echo -e " - ${BOLD}$target:${NC}"
 
-    if [[ "$os_type" == "win" ]]; then
-        # Test for internet connectivity on Windows
-        echo -n "    * Test Internet: "
-        if ssh -q "$target" "ping -n 1 www.google.com 2>NUL" >/dev/null; then
-            echo -e "${GREEN}OK${NC}"
-        else
-            echo -e "${RED}Failed${NC}"
-        fi
-        # Test for PowerShell on Windows
-        echo -n "    * Test PowerShell: "
-        if ssh -q "$target" "pwsh --version 2>NUL" >/dev/null; then
-            local pwsh_version=$(ssh -q "$target" "pwsh --version 2>NUL" | tr -d '\r\n' | head -n 1 | awk '{print $2}')
-            echo -e "${GREEN}OK (version $pwsh_version)${NC}"
-        else
-            echo -e "${RED}Failed${NC}"
-        fi
-        # Test for PowerShell execution policy
-        echo -n "    * Test PowerShell Execution Policy: "
-        local execution_policy=$(ssh -q "$target" "pwsh -Command \"Get-ExecutionPolicy\" 2>NUL" | tr -d '\r\n')
-        if [[ "$execution_policy" == "Restricted" ]]; then
-            echo -e "${YELLOW}Restricted (scripts cannot be run)${NC}"
-        else
-            echo -e "${GREEN}$execution_policy${NC}"
-        fi
-    elif [[ "$os_type" == "lin" ]]; then
-        # Test for internet connectivity on Linux
-        echo -n "    * Test Internet: "
-        if ssh -q "$target" "ping -c 1 google.com" >/dev/null 2>&1; then
-            echo -e "${GREEN}OK${NC}"
-        else
-            echo -e "${RED}Failed${NC}"
-        fi
-        # Test for sudo on Linux
-        echo -n "    * Test Sudo: "
-        if ssh -q "$target" "sudo -n true" >/dev/null 2>&1; then
-            echo -e "${GREEN}OK${NC}"
-        else
-            echo -e "${RED}Failed${NC}"
-        fi
-        # Test for Bash availability and path
-        echo -n "    * Test Bash: "
-        if ssh -q "$target" "command -v bash" >/dev/null 2>&1; then
-            bash_path=$(ssh -q "$target" "command -v bash")
-            echo -e "${GREEN}OK (path: $bash_path)${NC}"
-        else
-            echo -e "${RED}Failed${NC}"
-        fi
-    else
-        # Unsupported OS
-        echo -e "    * Unsupported OS"
-    fi
+    case "$os_type" in
+        win) check_conditions_target_win "$target" ;;
+        lin) check_conditions_target_lin "$target" ;;
+        *)   echo -e "    * Unsupported OS" ;;
+    esac
 }
 
 # Main check function
 check_conditions() {
     echo -e "${YELLOW}Testing conditions on all VMs... ${NC}"
     for s in "${sorted_stations[@]}"; do
-        local os_type=$(echo "${stations[$s]}" | cut -d' ' -f2)
+        local os_type
+        os_type=$(echo "${stations[$s]}" | cut -d' ' -f2)
         check_conditions_target "$s" "$os_type"
     done
+
     echo -e "${YELLOW}Testing conditions on all hosts... ${NC}"
     for h in "${sorted_hosts[@]}"; do
-        local os_type=$(echo "${hosts[$h]}" | cut -d' ' -f1) 
+        local os_type
+        os_type=$(echo "${hosts[$h]}" | cut -d' ' -f1)
         check_conditions_target "$h" "$os_type"
     done
 }
@@ -477,10 +543,13 @@ upload_and_extract_archive() {
         local win_build_dir="$build_dir\\$app_name\\$app_version"
         local win_temp_archive="$win_build_dir\\temp_upload.tar.gz"
 
+        # 7-Zip bin directory path (adjust as needed)
+        local sevenZipPath="C:\\Users\\Worker\\AppData\\Local\\7-Zip\\7za.exe"
+
         # Ensure the remote directory exists
         local ssh_mkdir_cmd="mkdir \"$win_build_dir\""
         local scp_cmd="scp $temp_archive $s:$win_build_dir"
-        local ssh_extract_cmd="\"C:\\Program Files\\7-Zip\\7z.exe\" x \"$win_temp_archive\" -so | \"C:\\Program Files\\7-Zip\\7z.exe\" x -bso0 -aoa -si -ttar -o\"$win_build_dir\" && del /Q \"$win_temp_archive\""
+        local ssh_extract_cmd="\"$sevenZipPath\" x \"$win_temp_archive\" -so | \"$sevenZipPath\" x -bso0 -aoa -si -ttar -o\"$win_build_dir\" && del /Q \"$win_temp_archive\""
     else
         echo -e "${RED}Unsupported OS: $os_type${NC}"
         return 1  # Indicate an error
