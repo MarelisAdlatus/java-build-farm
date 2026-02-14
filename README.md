@@ -77,8 +77,10 @@ This document is the source of truth for:
 ```text
 java-build-farm/
 ├── LICENSE
+├── NODES.md                         # Project documentation
 ├── PLATFORMS.md
-├── README.md                        # Project documentation
+├── README.md
+├── RELEASE.md
 ├── apps/                            # Source code and metadata for applications
 │   └── AppName/
 │       └── 1.0/                     # Application version folder
