@@ -8,12 +8,14 @@
 
 - [Overview](#overview)
 - [Features](#features)
+- [Platforms and Test Matrix](#platforms-and-test-matrix)
 - [Prerequisites](#prerequisites)
 - [Directory Structure](#directory-structure)
 - [Usage](#usage)
 - [Build Nodes and Inventory](#build-nodes-and-inventory)
 - [Installation and Node Provisioning](#installation-and-node-provisioning)
 - [SSH Key-Based Authentication](#ssh-key-based-authentication)
+- [Release Export (Remote Signing & Index Generation)](#release-export-remote-signing--index-generation)
 - [RPM Signing (GPG)](#rpm-signing-gpg)
 - [License](#license)
 
@@ -22,6 +24,24 @@
 Java Build Farm is a script-based automation system for building and packaging Java applications across multiple operating systems and distributions. It enables automatic dependency installation, building, and distribution of Java applications using Proxmox virtual machines and remote hosts.
 
 > The RadioRec application is used as an example. More information can be found in the repository on **[GitHub](https://github.com/MarelisAdlatus/radiorec)**.
+
+## Features
+
+- Automated dependency installation for Linux and Windows hosts
+- Support for multiple operating systems and distributions:
+  - Windows (10/11)
+  - Debian, Ubuntu (LTS and non-LTS), Fedora, Rocky Linux, openSUSE (Leap/Tumbleweed), Linux Mint, Pop!_OS
+- SSH-based remote execution and deployment
+- Java Runtime creation using `jlink`
+- Application packaging using `jpackage`
+- Native package generation depends on platform tooling availability.
+  Some rolling distributions generate archive/app-image outputs only.
+- Automated RPM package signing using GPG
+- `.exe` installer builds using [Inno Setup Compiler](https://jrsoftware.org/isinfo.php)
+- Remote VM/host provisioning via Proxmox (optional)
+- Secure, passwordless SSH authentication
+- Remote release export via SSH (incremental mirror upload)
+- Automatic dark-themed HTML release index generation
 
 ## Platforms and Test Matrix
 
@@ -36,39 +56,23 @@ This document is the source of truth for:
 - rolling release early warning targets
 - naming conventions (normalize to `x86_64`)
 
-## Features
-
-- Automated dependency installation for Linux and Windows hosts
-- Support for multiple operating systems and distributions:
-  - Windows (10/11)
-  - Debian, Ubuntu (LTS and non-LTS), Fedora, Rocky Linux, openSUSE (Leap/Tumbleweed), Linux Mint, Pop!_OS
-- SSH-based remote execution and deployment
-- Java Runtime creation using `jlink`
-- Application packaging using `jpackage`
-- Multi-platform package generation (`.deb`, `.rpm`, `.pkg`, `.exe`)
-- Automated RPM package signing using GPG
-- `.exe` installer builds using [Inno Setup Compiler](https://jrsoftware.org/isinfo.php)
-- Remote VM/host provisioning via Proxmox (optional)
-- Secure, passwordless SSH authentication
-
 ## Prerequisites
 
 ### On Java Build Farm (local machine)
 
 - **Linux with GNU Bash**
 - **Internet access**
-- **SSH client:** `ssh`, `scp`
-- **Other utilities:** `ping`, `sudo`, `bash`, `tar`, `find`, `awk`, `sed`, `cut`, `head`, `tr`, `rm`, `mkdir`, `chmod`, `sha256sum`
-- **RPM Signing:** `rpmsign` (usually from the `rpm-sign` or `rpm` package) and `gpg` (for key management)
+- **SSH client:** `ssh`, `scp` (optional: `rsync` for incremental mirror export)
+- **Other utilities:** `sudo`, `bash`, `tar`, `find`, `awk`, `sed`, `cut`, `head`, `tr`, `rm`, `mkdir`, `chmod`
 - **Proxmox:** (optional, only if using Proxmox for VM lifecycle actions in the menu)
 - **PowerShell 7+:** (only needed if you build on Windows targets)
 
-### On Build Stations (remote machines)
+### On Build Nodes (remote machines)
 
 - **Internet access**
 - **SSH Server** with key-based authentication enabled
-- **Linux stations:** `sudo` configured for non-interactive execution (passwordless sudo is recommended for automation)
-- **Windows stations:** PowerShell 7+ and OpenSSH Server (key-based login recommended)
+- **Linux nodes:** `sudo` configured for non-interactive execution (passwordless sudo is recommended for automation)
+- **Windows nodes:** PowerShell 7+ and OpenSSH Server (key-based login recommended)
 
 > Detailed per-node installation procedures (including PowerShell installation and passwordless sudo configuration) are documented under `docs/installation/`.
 
@@ -76,6 +80,8 @@ This document is the source of truth for:
 
 ```text
 java-build-farm/
+├── LICENSE
+├── PLATFORMS.md
 ├── README.md                        # Project documentation
 ├── apps/                            # Source code and metadata for applications
 │   └── AppName/
@@ -98,16 +104,18 @@ java-build-farm/
 │   ├── hosts.cfg
 │   └── vms.cfg
 ├── depends.ps1                      # Dependency setup for Windows
-├── depends.sh                       # Dependency setup for Linux/macOS
+├── depends.sh                       # Dependency setup for Linux
 ├── docs/
-│   ├── installation/                # Node setup documentation (VMs and hosts)
-│   └── images/
+│   ├── images/
+│   └── installation/                # Node setup documentation (VMs and hosts)
+├── export.sh                        # Remote export post-process script
 ├── farm.sh                          # Central build and packaging script
 └── release/                         # Output directory for generated packages
-    └── appname/
+    └── appname/                     # normalized lowercase app id
         └── 1.0/
             └── *-*/                 # Platform-specific folders (OS + version + arch)
-                ├── *.deb/.rpm       # Native packages (Linux)
+                ├── *.deb            # Debian packages
+                ├── *.rpm            # RPM packages
                 ├── *.exe            # Windows installers
                 ├── *.zip            # Portable builds
                 └── *.tar.gz         # Archive versions
@@ -136,7 +144,7 @@ Action ?
 3) Clean
 4) Build
 5) Download (URL paths)
-6) Sign & Hash
+6) Export
 7) VMs Status
 8) VMs Start
 9) VMs Stop
@@ -167,8 +175,19 @@ Select an action by entering the corresponding number or <kbd>q</kbd> for exit.
   Downloads produced artifacts via SSH/SCP into the local `release/` structure.
   Optionally normalizes directory names when `release_url_paths=yes`.
 
-- **6) Sign & Hash**
-  Signs RPMs and generates SHA256 checksum files for downloaded artifacts.
+- **6) Export**
+  Exports the local release directory to a remote target via SSH.
+
+  The export step can:
+
+  - mirror release artifacts to a remote server (incremental upload)
+  - sign RPM packages using a GPG key stored on the target machine
+  - generate SHA256 checksum files on the target
+  - optionally adjust permissions/ownership
+  - generate a dark-themed `index.html` release listing with download links
+
+  Export behavior is controlled via `config/global.cfg`
+  (`export_target`, `export_dir`, `export_url_prefix`, etc.).
 
 - **7–9) VM lifecycle (optional)**
   Available only when Proxmox is configured in `config/global.cfg`.
@@ -275,9 +294,61 @@ Copy the public key to nodes:
 > Windows nodes use OpenSSH Server and Windows ACL rules.
 > Exact steps are documented per node under `docs/installation/`.
 
+## Release Export (Remote Signing & Index Generation)
+
+The export step publishes releases to a remote Linux server (export target) via SSH.
+
+### Workflow
+
+1. Build artifacts are downloaded locally into `release/`.
+2. Action **6) Export** mirrors the release directory to a remote target.
+3. On the target, the following optional steps are executed:
+
+   - RPM signing (`rpmsign`) using a GPG key available on the target
+   - SHA256 checksum generation
+   - permission and ownership normalization
+   - generation of an `index.html` file for browsing releases
+
+### Key Configuration (global.cfg)
+
+```cfg
+export_target="user@server"
+export_dir="/var/www/download/release"
+export_url_prefix="https://example.com/download/"
+
+export_sign_rpms="yes"
+export_generate_sha256="yes"
+export_generate_index="yes"
+
+export_chmod="775"
+export_chown="www-data:www-data"
+```
+
+### Result
+
+A browsable release index is generated at:
+
+```text
+<export_dir>/index.html
+```
+
+The script automatically scans all subdirectories and creates
+absolute download links based on:
+
+```text
+export_url_prefix + export folder name
+```
+
 ## RPM Signing (GPG)
 
-For automatic RPM package signing during the **Download** step, the GPG environment must be properly configured on the local machine (the machine running `farm.sh`).
+When using the **6) Export** step with remote signing enabled, RPM signing is performed on the export target.
+
+The target machine must have:
+
+- `rpmsign`
+- `gpg`
+- the private signing key imported
+- properly configured `~/.rpmmacros`
 
 ### 1. Generate a New GPG Key
 
@@ -316,20 +387,24 @@ sec   rsa4096/9E736AF1D162F3F6 2026-02-08 [SC]
 uid   [ultimate] RPM Signing <signing@example.com>
 ```
 
-Use the **full fingerprint** or the **long key ID** (recommended) in all configuration files.
+Use the **full fingerprint** (recommended) in all configuration files.
 
 #### Export the Private Key (Optional, for Backup or CI)
 
 ```bash
-gpg --export-secret-keys --armor 9E736AF1D162F3F6 > private-key.asc
+gpg --export-secret-keys --armor 9E736AF1D162F3F6FF21E3659A1A41C5DDF5A11A > private-key.asc
 ```
 
 **Keep this file secret.**
 
+> Never copy the private signing key to build nodes.
+> The key should exist only on a dedicated signing or export target
+> that is physically secured and access-controlled.
+
 #### Export the Public Key (for Repository Users)
 
 ```bash
-gpg --export --armor 9E736AF1D162F3F6 > RPM-GPG-KEY-user
+gpg --export --armor 9E736AF1D162F3F6FF21E3659A1A41C5DDF5A11A > RPM-GPG-KEY-user
 ```
 
 ### 2. Importing the Private Key
@@ -373,4 +448,4 @@ gpg_key_id="9E736AF1D162F3F6FF21E3659A1A41C5DDF5A11A"
 
 This project is licensed under the [Apache License 2.0](LICENSE).
 
-:arrow_up: [Back to top](#top)
+:arrow_up: [Back to top](#java-build-farm)

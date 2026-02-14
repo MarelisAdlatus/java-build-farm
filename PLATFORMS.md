@@ -235,3 +235,5 @@ dpkg --print-architecture   # Returns amd64
 - **Universal Name:** `x86_64`
 - **Debian Ecosystem:** Map `amd64 → x86_64` internally if necessary.
 - **Public/Long-term:** Stick to `x86_64`.
+
+:arrow_up: [Back to top](#supported-linux-platforms--validation-matrix)

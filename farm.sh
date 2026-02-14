@@ -47,7 +47,6 @@ check_command() {
 # Check for required applications
 check_command ssh
 check_command scp
-check_command ping
 check_command sudo
 check_command bash
 check_command tar
@@ -60,8 +59,6 @@ check_command tr
 check_command rm
 check_command mkdir
 check_command chmod
-check_command rpmsign
-check_command sha256sum
 
 # all command line arguments
 arguments="$@"
@@ -741,112 +738,203 @@ stations_download () {
     done
 }
 
-# Function to sign downloaded RPM packages
-sign_rpms() {
-    echo -e "${YELLOW}:: Signing RPM packages...${NC}"
-
-    # Path to specific application/version
-    local dir_app_name
-    local dir_app_version
-
-    if [[ "$release_url_paths" == "yes" ]]; then
-        dir_app_name=$(url_path "$app_name")
-        dir_app_version=$(url_path "$app_version")
-    else
-        dir_app_name="$app_name"
-        dir_app_version="$app_version"
-    fi
-
-    # Target directory for RPM search
-    local sign_dir="$release_dir/$dir_app_name/$dir_app_version"
-    
-    # Check if the directory exists
-    if [[ ! -d "$sign_dir" ]]; then
-        echo -e "${YELLOW}No release directory found for $app_name $app_version (looked in $sign_dir)${NC}"
-        return 0
-    fi
-
-    # Check for key setup
-    if [[ -z "$gpg_key_id" ]]; then
-        echo -e "${RED}Error: gpg_key_id not set. Define it in config/global.cfg${NC}"
-        echo "Example: gpg_key_id=\"mymail@example.com\""
-        return 0
-    fi
-
-    # Find RPM files
-    mapfile -t rpm_files < <(find "$sign_dir" -type f -name "*.rpm")
-
-    if [[ ${#rpm_files[@]} -eq 0 ]]; then
-        echo -e "${YELLOW}No RPM packages found in $sign_dir${NC}"
-        return 0
-    fi
-
-    echo "Found ${#rpm_files[@]} RPMs to sign in $sign_dir:"
-    for rpm in "${rpm_files[@]}"; do
-        echo " - $rpm"
-    done
-
-    echo ""
-    echo -e "Using GPG key: ${GREEN}$gpg_key_id${NC}"
-    echo -e "You will be asked for the passphrase ${BOLD}once${NC}."
-
-    # Sign all files in one go
-    if rpmsign --addsign --key-id "$gpg_key_id" "${rpm_files[@]}"; then
-        echo -e "${GREEN}All RPMs signed successfully.${NC}"
-    else
-        echo -e "${RED}FAILED to sign one or more RPMs. Check output above.${NC}"
-    fi
-
-    echo -e "${GREEN}:: RPM signing completed.${NC}"
+# Run remote command (quiet wrapper)
+export_sshq() {
+    local cmd=$1
+    ssh -q "$export_target" "bash -lc '$cmd'"
 }
 
-# Function to generate SHA256 files for all artifacts
-generate_sha256() {
-    echo -e "${YELLOW}:: Generating SHA256 checksums...${NC}"
+# Run remote command with TTY (for pinentry/passphrase cases)
+export_sshtty() {
+    local cmd=$1
+    ssh -t "$export_target" "bash -lc '$cmd'"
+}
 
-    # Path to specific application/version
-    local dir_app_name
-    local dir_app_version
-
+# Resolve app/version directories (url-path aware)
+export_resolve_paths() {
     if [[ "$release_url_paths" == "yes" ]]; then
-        dir_app_name=$(url_path "$app_name")
-        dir_app_version=$(url_path "$app_version")
+        export_dir_app_name=$(url_path "$app_name")
+        export_dir_app_version=$(url_path "$app_version")
     else
-        dir_app_name="$app_name"
-        dir_app_version="$app_version"
+        export_dir_app_name="$app_name"
+        export_dir_app_version="$app_version"
     fi
 
-    # Target directory for search
-    local target_dir="$release_dir/$dir_app_name/$dir_app_version"
+    export_local_src_dir="$release_dir/$export_dir_app_name/$export_dir_app_version"
+    export_remote_release_dir="$export_dir/$export_dir_app_name/$export_dir_app_version"
+}
 
-    # Check if the directory exists
-    if [[ ! -d "$target_dir" ]]; then
-        echo -e "${YELLOW}No release directory found for $app_name $app_version (looked in $target_dir)${NC}"
+# Upload local release dir to remote
+export_upload_release_dir() {
+    echo "info: mirror directory to $export_target:$export_remote_release_dir"
+
+    # Ensure remote target exists
+    if ! export_sshq "set -e; mkdir -p \"$export_remote_release_dir\""; then
+        echo -e "${RED}Error: remote mkdir failed.${NC}"
+        return 1
+    fi
+
+    # Prefer rsync for incremental "mirror" behavior (overwrite changed only)
+    if command -v rsync >/dev/null 2>&1; then
+        if ! rsync -a --partial --delete --info=stats2,progress2 -e ssh \
+            "$export_local_src_dir"/ "$export_target:$export_remote_release_dir/"; then
+            echo -e "${RED}Error: rsync upload failed.${NC}"
+            return 1
+        fi
         return 0
     fi
 
-    # Find files to hash (exclude existing .sha256)
-    mapfile -t files_to_hash < <(find "$target_dir" -type f ! -name "*.sha256")
+    # Fallback: scp (overwrites, but cannot do incremental diff)
+    echo -e "${YELLOW}warn: rsync not found locally, using scp -r fallback (less efficient).${NC}"
+    if ! scp -r "$export_local_src_dir"/* "$export_target:$export_remote_release_dir/"; then
+        echo -e "${RED}Error: scp upload failed.${NC}"
+        return 1
+    fi
 
-    if [[ ${#files_to_hash[@]} -eq 0 ]]; then
-        echo -e "${YELLOW}No files found to hash in $target_dir${NC}"
+    return 0
+}
+
+# Upload export.sh to target (temporary)
+export_upload_remote_script() {
+    local local_script="./export.sh"
+    local remote_script="/tmp/farm_export.sh"
+
+    if [[ ! -f "$local_script" ]]; then
+        echo -e "${RED}Error: export.sh not found next to farm.sh${NC}"
+        return 1
+    fi
+
+    echo "info: upload export.sh to $export_target:$remote_script"
+    if ! scp "$local_script" "$export_target:$remote_script"; then
+        echo -e "${RED}Error: export.sh upload failed.${NC}"
+        return 1
+    fi
+
+    # ensure executable
+    if ! export_sshq "set -e; chmod +x \"$remote_script\""; then
+        echo -e "${RED}Error: remote chmod export.sh failed.${NC}"
+        return 1
+    fi
+
+    export_remote_script_path="$remote_script"
+    return 0
+}
+
+# Run remote export post-process via export.sh
+export_run_remote_postprocess() {
+    local tty="no"
+    [[ "$export_sign_rpms" == "yes" ]] && tty="yes"
+
+    # Validate values that will be injected into remote shell
+    for v in \
+        "$export_remote_release_dir" \
+        "$export_dir" \
+        "$export_url_prefix" \
+        "$export_chmod" \
+        "$export_chown" \
+        "$export_gpg_key_id"
+    do
+        if [[ "$v" == *$'\n'* || "$v" == *"'"* ]]; then
+            echo -e "${RED}Error: invalid characters in export config (newline or single quote).${NC}"
+            return 1
+        fi
+    done
+
+    local envs=""
+    envs+="EXPORT_RELEASE_DIR=\"$export_remote_release_dir\" "
+    envs+="EXPORT_ROOT_DIR=\"$export_dir\" "
+    envs+="EXPORT_URL_PREFIX=\"$export_url_prefix\" "
+    envs+="EXPORT_SIGN_RPMS=\"$export_sign_rpms\" "
+    envs+="EXPORT_SHA256=\"$export_generate_sha256\" "
+    envs+="EXPORT_INDEX=\"$export_generate_index\" "
+    envs+="EXPORT_CHMOD=\"$export_chmod\" "
+    envs+="EXPORT_CHOWN=\"$export_chown\" "
+    envs+="EXPORT_GPG_KEY_ID=\"$export_gpg_key_id\" "
+
+    echo "info: remote post-process (export.sh)"
+
+    if [[ "$tty" == "yes" ]]; then
+        if ! export_sshtty "set -e; $envs \"$export_remote_script_path\""; then
+            echo -e "${RED}Error: remote export.sh failed.${NC}"
+            return 1
+        fi
+    else
+        if ! export_sshq "set -e; $envs \"$export_remote_script_path\""; then
+            echo -e "${RED}Error: remote export.sh failed.${NC}"
+            return 1
+        fi
+    fi
+
+    return 0
+}
+
+# Remove temporary export script from target
+export_cleanup_remote_script() {
+    if [[ -n "$export_remote_script_path" ]]; then
+        export_sshq "rm -f \"$export_remote_script_path\"" >/dev/null 2>&1 || true
+    fi
+}
+
+# Export release to remote target and run signing + sha256 there
+export_release() {
+    echo -e "${YELLOW}:: Export release (remote sign + sha256).${NC}"
+
+    # Uses external variables defined in config/global.cfg:
+    # - release_dir
+    # - release_url_paths
+    # - export_gpg_key_id
+    # - export_target
+    # - export_dir
+    # - export_sign_rpms
+    # - export_generate_sha256
+    # - export_chmod
+    # - export_chown
+    # - export_clean_remote
+
+    export_remote_script_path=""
+
+    if [[ -z "$export_target" || -z "$export_dir" ]]; then
+        echo -e "${RED}Error: export_target/export_dir not set. Define it in config/global.cfg${NC}"
         return 0
     fi
 
-    echo "Found ${#files_to_hash[@]} files to hash in $target_dir:"
-    for file in "${files_to_hash[@]}"; do
-        echo " - $file"
-    done
+    export_resolve_paths
 
-    # Generate SHA256 files
-    for file in "${files_to_hash[@]}"; do
-        sha256_file="${file}.sha256"
-        hash=$(sha256sum "$file" | awk '{print $1}')
-        printf "%s  %s\n" "$hash" "$(basename "$file")" > "$sha256_file"
-        echo "Generated $sha256_file"
-    done
+    if [[ ! -d "$export_local_src_dir" ]]; then
+        echo -e "${YELLOW}No release directory found for $app_name $app_version (looked in $export_local_src_dir)${NC}"
+        return 0
+    fi
 
-    echo -e "${GREEN}:: SHA256 generation completed.${NC}"
+    echo "info: local source: $export_local_src_dir"
+    echo "info: remote target: $export_remote_release_dir"
+
+    if ! export_upload_release_dir; then
+        return 1
+    fi
+
+    # Validate remote dir exists (quick)
+    if ! export_sshq "set -e; d=\"$export_remote_release_dir\"; [[ -d \"\$d\" ]] || { echo \"Error: export dir not found: \$d\"; exit 1; }"; then
+        echo -e "${RED}Error: remote validation failed.${NC}"
+        return 1
+    fi
+
+    if ! export_upload_remote_script; then
+        return 1
+    fi
+
+    trap 'export_cleanup_remote_script' EXIT INT TERM
+
+    # Always cleanup remote helper script
+    if ! export_run_remote_postprocess; then
+        export_cleanup_remote_script
+        return 1
+    fi
+
+    export_cleanup_remote_script
+
+    trap - EXIT INT TERM
+
+    echo -e "${GREEN}:: Export completed.${NC}"
 }
 
 # Main menu
@@ -858,7 +946,7 @@ show_menu() {
     echo "3) Clean"
     echo "4) Build"
     echo "5) Download $( [ "$release_url_paths" == "yes" ] && echo "(URL paths)" )"
-    echo "6) Sign & Hash"
+    echo "6) Export"
 
     # Show VM options only if Proxmox is configured
     if [[ -n "$proxmox_server" && -n "$proxmox_user" ]]; then
@@ -880,7 +968,7 @@ while true; do
         3) select_application && clean_all ;;
         4) select_application && stations_upload && stations_build ;;
         5) select_application && stations_download ;;
-        6) select_application && sign_rpms && generate_sha256 ;;
+        6) select_application && export_release ;;
         
         # Execute VM-related actions only if Proxmox is configured
         7) [[ -n "$proxmox_server" && -n "$proxmox_user" ]] && vm_status ;;
