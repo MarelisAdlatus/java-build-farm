@@ -1,8 +1,10 @@
 # Java Build Farm
 
+<!-- markdownlint-disable MD033 -->
 <p align="center">
-  <img src="docs/images/app-image.png" width="640" alt="Application screenshot – main window with feature overview">
+  <img src="docs/images/app-image.png" width="640" alt="Application screenshot - main window with feature overview">
 </p>
+<!-- markdownlint-enable MD033 -->
 
 ## Table of Contents
 
@@ -150,7 +152,7 @@ q) Quit
 #?
 ```
 
-Select an action by entering the corresponding number or <kbd>q</kbd> for exit.
+Select an action by entering the corresponding number or `q` for exit.
 
 ### Menu Options (high level)
 
