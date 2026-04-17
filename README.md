@@ -173,8 +173,8 @@ Select an action by entering the corresponding number or <kbd>q</kbd> for exit.
   Downloads produced artifacts via SSH/SCP into the local `release/` structure.
   Optionally normalizes directory names when `release_url_paths=yes`.
 
-- **6) Export**  
-  Exports the local `release/` directory to a remote Linux export target via SSH.  
+- **6) Export**
+  Exports the local `release/` directory to a remote Linux export target via SSH.
   The export step can perform remote RPM signing, generate SHA256 checksums, and create a publish-ready HTML release index.
 
   See: **[RELEASE.md](RELEASE.md)** for full workflow and configuration details.
