@@ -2,6 +2,9 @@
 /release
 /.github
 /.ai
-/.vscode
+/.vscode/*
+!/.vscode/extensions.json
 /.codex
 /.markdownlint.json
+/AGENTS.md
+/AGENTS.local.md
