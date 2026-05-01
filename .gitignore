@@ -1,10 +1,9 @@
 /.idea
 /release
-/.github
 /.ai
 /.vscode/*
 !/.vscode/extensions.json
 /.codex
-/.markdownlint.json
+/.github/copilot-instructions.md
 /AGENTS.md
 /AGENTS.local.md
